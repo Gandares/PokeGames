@@ -1,0 +1,8 @@
+.sprite-mystery { min-height: 300px; }
+.sprite-zoom-image { position: relative; z-index: 1; width: 72%; height: 72%; object-fit: contain; image-rendering: pixelated; filter: grayscale(1); transition: transform .45s ease, filter .45s ease; }
+.sprite-zoom-image.is-revealed { filter: none; }
+.sprite-zoom-info { display: flex; flex-direction: column; gap: 12px; justify-content: center; height: 100%; padding: 22px; border: 1px solid var(--line); border-radius: 10px; background: var(--soft); }
+.sprite-zoom-info h3 { font: 700 19px 'Space Grotesk', sans-serif; letter-spacing: -.5px; }
+.sprite-zoom-info p { color: var(--muted); font-size: 13px; line-height: 1.6; }
+.game-tile-sprite .game-tile-icon { background: #e7e9e7; color: #53635b; }
+@media (prefers-reduced-motion: reduce) { .sprite-zoom-image { transition: none; } }
