@@ -286,7 +286,8 @@ function App() {
   const displayName = game && localizedName(game.species.names, language, game.pokemon.name)
   const slots = game ? [game.pokemon.abilities.findIndex((ability) => ability.slot === 1), game.pokemon.abilities.findIndex((ability) => ability.slot === 2 && !ability.is_hidden), game.pokemon.abilities.findIndex((ability) => ability.is_hidden)] : [-1, -1, -1]
   const labels = [copy.primary, copy.secondary, copy.hidden, language === 'es' ? 'GENERACIÓN' : 'GENERATION', language === 'es' ? 'TIPOS' : 'TYPES']
-  const unlocked = [true, attempts >= 2 || revealed, attempts >= 4 || revealed, attempts >= 6 || status === 'won', attempts >= 8 || status === 'won']
+  const clueThresholds = [0, 2, 4, mode === 'moves' ? 2 : 6, mode === 'moves' ? 4 : 8]
+  const unlocked = [true, attempts >= 2 || revealed, attempts >= 4 || revealed, attempts >= clueThresholds[3] || status === 'won', attempts >= clueThresholds[4] || status === 'won']
   const statLabels = language === 'es' ? ['VIDA', 'ATAQUE', 'DEFENSA', 'ATAQUE ESPECIAL', 'DEFENSA ESPECIAL', 'VELOCIDAD'] : ['HP', 'ATTACK', 'DEFENSE', 'SPECIAL ATTACK', 'SPECIAL DEFENSE', 'SPEED']
   const unlockedStats = statLabels.map((_, index) => attempts >= index || revealed)
   const unlockedCount = mode === 'stats' ? unlockedStats.filter(Boolean).length + unlocked.slice(3).filter(Boolean).length : unlocked.filter(Boolean).length
@@ -321,7 +322,7 @@ function App() {
     return <section className="type-challenge"><h3>{language === 'es' ? 'CLASIFICA LOS TIPOS DE ATAQUE' : 'SORT ATTACK TYPES'}</h3><p>{language === 'es' ? 'Arrastra cada tipo a su multiplicador o selecciónalo y pulsa una casilla. Después, comprueba tus respuestas: verde es correcto y rojo es incorrecto.' : 'Drag each type to its multiplier, or select it and choose a box. Then check your answers: green is correct and red is incorrect.'}</p><div className="type-palette">{effectiveness.filter((type) => placements[type.name] === undefined).map(typeButton)}</div><div className="type-zones">{[4, 2, 1, 0.5, 0.25, 0].map((multiplier) => <div className="type-zone" key={multiplier} onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); placeType(event.dataTransfer.getData('text/plain'), multiplier) }}><button type="button" className="type-zone-label" onClick={() => selectedType && placeType(selectedType, multiplier)} disabled={!selectedType || locked} aria-label={`${language === 'es' ? 'Colocar en' : 'Place in'} ×${multiplier}`}>×{multiplier} {selectedType && !locked ? '+' : ''}</button><div className="type-zone-tokens">{effectiveness.filter((type) => placements[type.name] === multiplier).map(typeButton)}</div></div>)}</div>{!typePhaseDone && <button type="button" className="primary-button check-types" onClick={checkTypes} disabled={Object.keys(typePlacements).length === 0}>{language === 'es' ? 'Comprobar tipos' : 'Check types'}</button>}{typePhaseDone && <p className="types-complete" role="status">{language === 'es' ? '¡Todos los tipos son correctos! Ahora adivina los Pokémon.' : 'All types are correct! Now guess the Pokémon.'}</p>}</section>
   }
   const renderClue = (index) => {
-    const remaining = index * 2 - attempts
+    const remaining = clueThresholds[index] - attempts
     let content
     if (!unlocked[index]) {
       content = language === 'es' ? `Se desbloqueará en ${remaining} ${remaining === 1 ? 'fallo' : 'fallos'}` : `Unlocks in ${remaining} ${remaining === 1 ? 'miss' : 'misses'}`
