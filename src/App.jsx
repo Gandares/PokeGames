@@ -7,8 +7,9 @@ const text = {
   en: { badge: 'THE POKÉMON CHALLENGE', title: 'Who’s that', titleEnd: 'Pokémon?', intro: 'Put your knowledge to the test. One mystery Pokémon, its abilities, and all the clues you need.', play: 'GUESS THE POKÉMON', round: 'CURRENT GAME', hints: 'ABILITY CLUES', attempts: 'incorrect guesses', primary: 'PRIMARY ABILITY', secondary: 'SECONDARY ABILITY', hidden: 'HIDDEN ABILITY', unlock2: 'Revealed after 2 misses', unlock4: 'Revealed after 4 misses', none: 'No ability in this slot', question: 'KNOW WHO IT IS?', placeholder: 'Enter a Pokémon name...', submit: 'Check', helper: 'Enter a name and press check', wrong: 'That’s not it. Keep trying!', win: 'That’s right! You discovered', newGame: 'Play again', loading: 'Preparing your mystery Pokémon...', error: 'Could not connect to PokéAPI.', retry: 'Try again', theme: 'Change theme', language: 'Cambiar idioma a español', footer: 'MADE FOR CURIOUS TRAINERS', counter: 'CLUES UNLOCKED', success: 'MYSTERY SOLVED!', reveal: 'REVEAL POKÉMON', answer: 'The Pokémon was', revealed: 'POKÉMON REVEALED' },
 }
 
-const normalize = (value) => value.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[ .’'♀♂:-]/g, '')
+const normalize = (value) => value.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace('♀', 'f').replace('♂', 'm').replace(/[ .’':-]/g, '')
 const titleCase = (value) => value.replace(/(^|[-\s])\S/g, (letter) => letter.toUpperCase()).replaceAll('-', ' ')
+const speciesName = (name) => name === 'nidoran-f' ? 'Nidoran♀' : name === 'nidoran-m' ? 'Nidoran♂' : titleCase(name)
 
 async function getPokemon() {
   const id = Math.floor(Math.random() * 1025) + 1
@@ -41,10 +42,19 @@ function App() {
   const [guess, setGuess] = useState('')
   const [feedback, setFeedback] = useState('')
   const [round, setRound] = useState(0)
+  const [species, setSpecies] = useState([])
   const copy = text[language]
 
   useEffect(() => { localStorage.setItem('pokegames-language', language); document.documentElement.lang = language }, [language])
   useEffect(() => { localStorage.setItem('pokegames-theme', theme); document.documentElement.dataset.theme = theme }, [theme])
+  useEffect(() => {
+    const controller = new AbortController()
+    fetch('https://pokeapi.co/api/v2/pokemon-species?limit=1025', { signal: controller.signal })
+      .then((response) => { if (!response.ok) throw new Error('species'); return response.json() })
+      .then((data) => setSpecies(data.results.map((entry) => speciesName(entry.name))))
+      .catch(() => {})
+    return () => controller.abort()
+  }, [])
   useEffect(() => {
     let active = true
     getPokemon().then((result) => { if (active) { setGame(result); setStatus('playing') } }).catch(() => { if (active) setStatus('error') })
@@ -71,7 +81,7 @@ function App() {
       <section className="game-card"><div className="card-heading"><div><div className="section-kicker"><span className="red-dot" /> {copy.round}</div><h2>{copy.hints}</h2></div><div className="attempt-pill"><span>✕</span> <strong>{attempts}</strong> {copy.attempts}</div></div>
         {status === 'loading' ? <div className="state">{copy.loading}</div> : status === 'error' ? <div className="state">{copy.error}<br /><button className="primary-button retry" onClick={reset}>{copy.retry}</button></div> : <><div className="game-layout"><div className="mystery"><div className="mystery-top"><span>NO. ???</span><span>✦</span></div><div className="orbit orbit-one" /><div className="orbit orbit-two" /><div className="question-mark">{revealed ? <img src={game.pokemon.sprites.other['official-artwork'].front_default || game.pokemon.sprites.front_default} alt={displayName} /> : '?'}</div><div className="mystery-bottom">{revealed ? displayName : '???'} <span>✦</span></div></div>
           <div className="clue-area"><div className="clue-heading"><span>{copy.counter}</span><strong>{unlocked.filter(Boolean).length}<span> / 3</span></strong></div><div className="progress"><i style={{ width: `${unlocked.filter(Boolean).length / 3 * 100}%` }} /></div><div className="clues">{labels.map((label, index) => <div className={`clue ${unlocked[index] ? 'unlocked' : 'locked'}`} key={label}><span className="clue-number">{unlocked[index] ? '✦' : '⌑'}</span><div><span className="clue-label">{label}</span><strong>{unlocked[index] ? slots[index] === -1 ? copy.none : localizedName(game.abilities[slots[index]].names, language, game.pokemon.abilities[slots[index]].ability.name) : language === 'es' ? `Se desbloqueará en ${index * 2 - attempts} ${index * 2 - attempts === 1 ? 'fallo' : 'fallos'}` : `Unlocks in ${index * 2 - attempts} ${index * 2 - attempts === 1 ? 'miss' : 'misses'}`}</strong></div><span className="clue-index">0{index + 1}</span></div>)}</div></div></div>
-          <div className="guess-section">{revealed ? <div className="result" role="status"><div><span className="section-kicker"><span className="red-dot" /> {status === 'won' ? copy.success : copy.revealed}</span><h3>{status === 'won' ? copy.win : copy.answer} <em>{displayName}!</em></h3></div><button className="primary-button" onClick={reset}>{copy.newGame} <span>↗</span></button></div> : <><label htmlFor="guess">{copy.question}</label><form onSubmit={submit}><input id="guess" value={guess} onChange={(event) => setGuess(event.target.value)} placeholder={copy.placeholder} autoComplete="off" /><button className="primary-button" type="submit">{copy.submit} <span>↗</span></button></form><div className="form-foot"><span className={feedback ? 'feedback' : ''} role="status">{feedback ? copy[feedback] : copy.helper}</span><button className="reveal-button" onClick={() => setStatus('revealed')}>{copy.reveal} ↗</button></div></>}</div></>}
+          <div className="guess-section">{revealed ? <div className="result" role="status"><div><span className="section-kicker"><span className="red-dot" /> {status === 'won' ? copy.success : copy.revealed}</span><h3>{status === 'won' ? copy.win : copy.answer} <em>{displayName}!</em></h3></div><button className="primary-button" onClick={reset}>{copy.newGame} <span>↗</span></button></div> : <><label htmlFor="guess">{copy.question}</label><form onSubmit={submit}><input id="guess" list={guess.trim().length >= 3 ? 'pokemon-suggestions' : undefined} value={guess} onChange={(event) => setGuess(event.target.value)} placeholder={copy.placeholder} autoComplete="off" /><datalist id="pokemon-suggestions">{species.filter((name) => normalize(name).includes(normalize(guess))).map((name) => <option key={name} value={name} />)}</datalist><button className="primary-button" type="submit">{copy.submit} <span>↗</span></button></form><div className="form-foot"><span className={feedback ? 'feedback' : ''} role="status">{feedback ? copy[feedback] : copy.helper}</span><button className="reveal-button" onClick={() => setStatus('revealed')}>{copy.reveal} ↗</button></div></>}</div></>}
       </section><div className="below-card"><span>✦</span> {copy.footer} <span>✦</span></div></main><footer><span>© POKÉGAMES</span><span>POWERED BY <a href="https://pokeapi.co/" target="_blank" rel="noreferrer">POKÉAPI ↗</a></span></footer>
   </div>
 }
