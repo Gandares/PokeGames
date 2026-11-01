@@ -1,0 +1,2 @@
+.reveal-clue { padding: 0; border: 0; background: transparent; color: var(--accent); font: inherit; text-align: left; }
+.reveal-clue:hover { text-decoration: underline; }

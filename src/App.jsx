@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import './app.css'
 import './language.css'
 import './suggestions.css'
+import './extra-clues.css'
 
 const text = {
   es: { badge: 'EL RETO POKÉMON', title: '¿Quién es ese', titleEnd: 'Pokémon?', intro: 'Pon a prueba tus conocimientos. Un Pokémon misterioso, sus habilidades y todas las pistas que necesitas.', play: 'ADIVINA EL POKÉMON', round: 'PARTIDA ACTUAL', hints: 'PISTAS DE HABILIDAD', attempts: 'intentos fallidos', primary: 'HABILIDAD PRINCIPAL', secondary: 'HABILIDAD SECUNDARIA', hidden: 'HABILIDAD OCULTA', unlock2: 'Se revela tras 2 fallos', unlock4: 'Se revela tras 4 fallos', none: 'No tiene esta habilidad', question: '¿YA SABES QUIÉN ES?', placeholder: 'Escribe el nombre de un Pokémon...', submit: 'Comprobar', helper: 'Introduce un nombre y pulsa comprobar', wrong: 'No es ese Pokémon. ¡Sigue intentándolo!', win: '¡Correcto! Has descubierto a', newGame: 'Jugar de nuevo', loading: 'Preparando tu Pokémon misterioso...', error: 'No hemos podido conectar con PokéAPI.', retry: 'Intentar de nuevo', theme: 'Cambiar tema', language: 'Change language to English', footer: 'HECHO PARA ENTRENADORES CURIOSOS', counter: 'PISTAS DESBLOQUEADAS', success: '¡MISTERIO RESUELTO!', reveal: 'REVELAR POKÉMON', answer: 'El Pokémon era', revealed: 'POKÉMON REVELADO' },
@@ -17,13 +18,14 @@ async function getPokemon() {
   const pokemonResponse = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`)
   if (!pokemonResponse.ok) throw new Error('pokemon')
   const pokemon = await pokemonResponse.json()
-  const [speciesResponse, ...abilityResponses] = await Promise.all([
+  const [speciesResponse, ...detailResponses] = await Promise.all([
     fetch(pokemon.species.url),
     ...pokemon.abilities.map((ability) => fetch(ability.ability.url)),
+    ...pokemon.types.map((type) => fetch(type.type.url)),
   ])
-  if (!speciesResponse.ok || abilityResponses.some((response) => !response.ok)) throw new Error('details')
-  const [species, ...abilities] = await Promise.all([speciesResponse.json(), ...abilityResponses.map((response) => response.json())])
-  return { pokemon, species, abilities }
+  if (!speciesResponse.ok || detailResponses.some((response) => !response.ok)) throw new Error('details')
+  const [species, ...details] = await Promise.all([speciesResponse.json(), ...detailResponses.map((response) => response.json())])
+  return { pokemon, species, abilities: details.slice(0, pokemon.abilities.length), types: details.slice(pokemon.abilities.length) }
 }
 
 function localizedName(names, language, fallback) {
@@ -46,6 +48,7 @@ function App() {
   const [species, setSpecies] = useState([])
   const [suggestionsOpen, setSuggestionsOpen] = useState(false)
   const [activeSuggestion, setActiveSuggestion] = useState(-1)
+  const [extraClues, setExtraClues] = useState([false, false])
   const copy = text[language]
 
   useEffect(() => { localStorage.setItem('pokegames-language', language); document.documentElement.lang = language }, [language])
@@ -64,7 +67,7 @@ function App() {
     return () => { active = false }
   }, [round])
 
-  const reset = () => { setStatus('loading'); setGame(null); setAttempts(0); setGuess(''); setFeedback(''); setRound((value) => value + 1) }
+  const reset = () => { setStatus('loading'); setGame(null); setAttempts(0); setGuess(''); setFeedback(''); setExtraClues([false, false]); setRound((value) => value + 1) }
   const submit = (event) => {
     event.preventDefault()
     if (!guess.trim() || status !== 'playing') return
@@ -77,8 +80,8 @@ function App() {
   const revealed = status === 'won' || status === 'revealed'
   const displayName = game && localizedName(game.species.names, language, game.pokemon.name)
   const slots = game ? [game.pokemon.abilities.findIndex((ability) => ability.slot === 1), game.pokemon.abilities.findIndex((ability) => ability.slot === 2 && !ability.is_hidden), game.pokemon.abilities.findIndex((ability) => ability.is_hidden)] : [-1, -1, -1]
-  const labels = [copy.primary, copy.secondary, copy.hidden]
-  const unlocked = [true, attempts >= 2 || revealed, attempts >= 4 || revealed]
+  const labels = [copy.primary, copy.secondary, copy.hidden, language === 'es' ? 'GENERACIÓN' : 'GENERATION', language === 'es' ? 'TIPOS' : 'TYPES']
+  const unlocked = [true, attempts >= 2 || revealed, attempts >= 4 || revealed, attempts >= 6, attempts >= 8]
   const suggestions = guess.trim().length >= 3 ? species.filter((entry) => normalize(entry.name).startsWith(normalize(guess))) : []
   const showSuggestions = suggestionsOpen && suggestions.length > 0
   const selectSuggestion = (name) => { setGuess(name); setSuggestionsOpen(false); setActiveSuggestion(-1) }
@@ -93,9 +96,9 @@ function App() {
   return <div className="app-shell">
     <header className="topbar"><a className="brand" href="#top"><span className="brand-icon"><span /></span><span>POKÉ<span>GAMES</span><small>{language === 'es' ? 'por Gandares' : 'by Gandares'}</small></span></a><div className="nav-actions"><button className="icon-button" onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')} aria-label={copy.theme}>{theme === 'light' ? '☾' : '☀'}</button><details className="language-selector"><summary className="lang-button" aria-label={language === 'es' ? 'Seleccionar idioma' : 'Select language'}>{flag(language)} {language.toUpperCase()} <span className="chevron">⌄</span></summary><div className="language-menu">{[['es', 'Español'], ['en', 'English']].map(([code, name]) => <button key={code} type="button" aria-pressed={language === code} onClick={(event) => { setLanguage(code); event.currentTarget.closest('details').open = false }}>{flag(code)} {name}</button>)}</div></details></div></header>
     <main id="top"><section className="hero"><div className="eyebrow"><span className="dot" /> {copy.badge}</div><h1>{copy.title}<br /><em>{copy.titleEnd}</em></h1><p>{copy.intro}</p><div className="hero-mark">✳ <span>{copy.play}</span> ✳</div></section>
-      <section className="game-card"><div className="card-heading"><div><div className="section-kicker"><span className="red-dot" /> {copy.round}</div><h2>{copy.hints}</h2></div><div className="attempt-pill"><span>✕</span> <strong>{attempts}</strong> {copy.attempts}</div></div>
+      <section className="game-card"><div className="card-heading"><div><div className="section-kicker"><span className="red-dot" /> {copy.round}</div><h2>{language === 'es' ? 'PISTAS DEL POKÉMON' : 'POKÉMON CLUES'}</h2></div><div className="attempt-pill"><span>✕</span> <strong>{attempts}</strong> {copy.attempts}</div></div>
         {status === 'loading' ? <div className="state">{copy.loading}</div> : status === 'error' ? <div className="state">{copy.error}<br /><button className="primary-button retry" onClick={reset}>{copy.retry}</button></div> : <><div className="game-layout"><div className="mystery"><div className="mystery-top"><span>NO. ???</span><span>✦</span></div><div className="orbit orbit-one" /><div className="orbit orbit-two" /><div className="question-mark">{revealed ? <img src={game.pokemon.sprites.other['official-artwork'].front_default || game.pokemon.sprites.front_default} alt={displayName} /> : '?'}</div><div className="mystery-bottom">{revealed ? displayName : '???'} <span>✦</span></div></div>
-          <div className="clue-area"><div className="clue-heading"><span>{copy.counter}</span><strong>{unlocked.filter(Boolean).length}<span> / 3</span></strong></div><div className="progress"><i style={{ width: `${unlocked.filter(Boolean).length / 3 * 100}%` }} /></div><div className="clues">{labels.map((label, index) => <div className={`clue ${unlocked[index] ? 'unlocked' : 'locked'}`} key={label}><span className="clue-number">{unlocked[index] ? '✦' : '⌑'}</span><div><span className="clue-label">{label}</span><strong>{unlocked[index] ? slots[index] === -1 ? copy.none : localizedName(game.abilities[slots[index]].names, language, game.pokemon.abilities[slots[index]].ability.name) : language === 'es' ? `Se desbloqueará en ${index * 2 - attempts} ${index * 2 - attempts === 1 ? 'fallo' : 'fallos'}` : `Unlocks in ${index * 2 - attempts} ${index * 2 - attempts === 1 ? 'miss' : 'misses'}`}</strong></div><span className="clue-index">0{index + 1}</span></div>)}</div></div></div>
+          <div className="clue-area"><div className="clue-heading"><span>{copy.counter}</span><strong>{unlocked.filter(Boolean).length}<span> / 5</span></strong></div><div className="progress"><i style={{ width: `${unlocked.filter(Boolean).length / 5 * 100}%` }} /></div><div className="clues">{labels.map((label, index) => <div className={`clue ${unlocked[index] ? 'unlocked' : 'locked'}`} key={label}><span className="clue-number">{unlocked[index] ? '✦' : '⌑'}</span><div><span className="clue-label">{label}</span><strong>{!unlocked[index] ? language === 'es' ? `Se desbloqueará en ${index * 2 - attempts} ${index * 2 - attempts === 1 ? 'fallo' : 'fallos'}` : `Unlocks in ${index * 2 - attempts} ${index * 2 - attempts === 1 ? 'miss' : 'misses'}` : index < 3 ? slots[index] === -1 ? copy.none : localizedName(game.abilities[slots[index]].names, language, game.pokemon.abilities[slots[index]].ability.name) : extraClues[index - 3] ? index === 3 ? `${language === 'es' ? 'Generación' : 'Generation'} ${game.species.generation.name.replace('generation-', '').toUpperCase()}` : game.types.map((type) => localizedName(type.names, language, type.name)).join(' / ') : <button className="reveal-clue" type="button" onClick={() => setExtraClues((current) => current.map((value, clueIndex) => clueIndex === index - 3 ? true : value))}>{language === 'es' ? 'Pulsa para revelar' : 'Click to reveal'} ↗</button>}</strong></div><span className="clue-index">0{index + 1}</span></div>)}</div></div></div>
           <div className="guess-section">{revealed ? <div className="result" role="status"><div><span className="section-kicker"><span className="red-dot" /> {status === 'won' ? copy.success : copy.revealed}</span><h3>{status === 'won' ? copy.win : copy.answer} <em>{displayName}!</em></h3></div><button className="primary-button" onClick={reset}>{copy.newGame} <span>↗</span></button></div> : <><label htmlFor="guess">{copy.question}</label><form onSubmit={submit}><div className="suggestion-field"><input id="guess" role="combobox" aria-autocomplete="list" aria-expanded={showSuggestions} aria-controls="pokemon-suggestions" aria-activedescendant={showSuggestions && activeSuggestion >= 0 ? `pokemon-option-${suggestions[activeSuggestion].id}` : undefined} value={guess} onChange={(event) => { setGuess(event.target.value); setSuggestionsOpen(true); setActiveSuggestion(-1) }} onFocus={() => setSuggestionsOpen(true)} onBlur={() => setSuggestionsOpen(false)} onKeyDown={handleSuggestionKey} placeholder={copy.placeholder} autoComplete="off" />{showSuggestions && <ul id="pokemon-suggestions" className="suggestion-list" role="listbox">{suggestions.map((entry, index) => <li id={`pokemon-option-${entry.id}`} key={entry.id} role="option" aria-selected={index === activeSuggestion} onPointerDown={(event) => event.preventDefault()} onClick={() => selectSuggestion(entry.name)}><img src={`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${entry.id}.png`} alt="" loading="lazy" /><span>{entry.name}</span></li>)}</ul>}</div><button className="primary-button" type="submit">{copy.submit} <span>↗</span></button></form><div className="form-foot"><span className={feedback ? 'feedback' : ''} role="status">{feedback ? copy[feedback] : copy.helper}</span><button className="reveal-button" onClick={() => setStatus('revealed')}>{copy.reveal} ↗</button></div></>}</div></>}
       </section><div className="below-card"><span>✦</span> {copy.footer} <span>✦</span></div></main><footer><span>© POKÉGAMES</span><span>POWERED BY <a href="https://pokeapi.co/" target="_blank" rel="noreferrer">POKÉAPI ↗</a></span></footer>
   </div>
