@@ -16,6 +16,7 @@ const normalize = (value) => value.trim().toLowerCase().normalize('NFD').replace
 const titleCase = (value) => value.replace(/(^|[-\s])\S/g, (letter) => letter.toUpperCase()).replaceAll('-', ' ')
 const speciesName = (name) => name === 'nidoran-f' ? 'Nidoran♀' : name === 'nidoran-m' ? 'Nidoran♂' : titleCase(name)
 const spanishColors = { black: 'Negro', blue: 'Azul', brown: 'Marrón', gray: 'Gris', green: 'Verde', pink: 'Rosa', purple: 'Morado', red: 'Rojo', white: 'Blanco', yellow: 'Amarillo' }
+const spanishShapes = { ball: 'Esférico', squiggle: 'Serpentino', fish: 'Pez', arms: 'Con brazos', blob: 'Amorfo', upright: 'Erguido', legs: 'Con patas', quadruped: 'Cuadrúpedo', wings: 'Con alas', tentacles: 'Con tentáculos', heads: 'Varias cabezas', humanoid: 'Humanoide', 'bug-wings': 'Alas de insecto', armor: 'Con armadura' }
 
 function findEvolution(chain, name) {
   if (chain.species.name === name) return chain
@@ -24,6 +25,24 @@ function findEvolution(chain, name) {
     if (match) return match
   }
   return null
+}
+
+function evolutionInfo(chain, name, stage = 1) {
+  if (chain.species.name === name) return { stage, canEvolve: chain.evolves_to.length > 0 }
+  for (const evolution of chain.evolves_to) {
+    const result = evolutionInfo(evolution, name, stage + 1)
+    if (result) return result
+  }
+  return null
+}
+
+async function getEvolutionInfo(species, signal) {
+  const response = await fetch(species.evolution_chain.url, { signal })
+  if (!response.ok) throw new Error('evolution')
+  const data = await response.json()
+  const result = evolutionInfo(data.chain, species.name)
+  if (!result) throw new Error('evolution species')
+  return result
 }
 
 async function getPokemon(mode, signal) {
@@ -50,11 +69,12 @@ async function getPokemon(mode, signal) {
   ])
   if (!speciesResponse.ok || detailResponses.some((response) => !response.ok)) throw new Error('details')
   const [species, ...details] = await Promise.all([speciesResponse.json(), ...detailResponses.map((response) => response.json())])
-  return { pokemon, species, abilities: details.slice(0, pokemon.abilities.length), types: details.slice(pokemon.abilities.length) }
+  const evolution = mode === 'pokedle' ? await getEvolutionInfo(species, signal) : null
+  return { pokemon, species, evolution, abilities: details.slice(0, pokemon.abilities.length), types: details.slice(pokemon.abilities.length) }
 }
 
 function localizedName(names, language, fallback) {
-  return names.find((entry) => entry.language.name === language)?.name || titleCase(fallback)
+  return names.find((entry) => entry.language.name === language)?.name || (language === 'es' && spanishShapes[fallback]) || titleCase(fallback)
 }
 
 function flag(country) {
@@ -114,11 +134,11 @@ function App() {
         const [pokemonResponse, speciesResponse] = await Promise.all([fetch(`https://pokeapi.co/api/v2/pokemon/${selected.id}`), fetch(`https://pokeapi.co/api/v2/pokemon-species/${selected.id}`)])
         if (!pokemonResponse.ok || !speciesResponse.ok) throw new Error('comparison')
         const [pokemon, guessedSpecies] = await Promise.all([pokemonResponse.json(), speciesResponse.json()])
-        const typeResponses = await Promise.all(pokemon.types.map((type) => fetch(type.type.url)))
-        if (typeResponses.some((response) => !response.ok)) throw new Error('types')
-        const types = await Promise.all(typeResponses.map((response) => response.json()))
+        const [evolution, shapeResponse, ...typeResponses] = await Promise.all([getEvolutionInfo(guessedSpecies), guessedSpecies.shape ? fetch(guessedSpecies.shape.url) : Promise.resolve(null), ...pokemon.types.map((type) => fetch(type.type.url))])
+        if ((shapeResponse && !shapeResponse.ok) || typeResponses.some((response) => !response.ok)) throw new Error('details')
+        const [shape, ...types] = await Promise.all([shapeResponse ? shapeResponse.json() : null, ...typeResponses.map((response) => response.json())])
         if (version !== requestVersion.current) return
-        setComparisons((current) => [{ ...selected, pokemon, species: guessedSpecies, types }, ...current])
+        setComparisons((current) => [{ ...selected, pokemon, species: guessedSpecies, evolution, shape, types }, ...current])
         setGuess('')
         if (pokemon.id === game.pokemon.id) { setStatus('won'); setFeedback(''); setExtraClues([true, true]) }
         else { setFailedGuesses((current) => [...current, selected]); setAttempts((current) => current + 1); setFeedback('wrong'); setStatus('playing') }
@@ -178,7 +198,7 @@ function App() {
           <div className="clue-area"><div className="clue-heading"><span>{copy.counter}</span><strong>{unlockedCount}<span> / {clueCount}</span></strong></div><div className="progress"><i style={{ width: `${unlockedCount / clueCount * 100}%` }} /></div><div className="clues">{mode === 'abilities' ? [0, 1, 2].map(renderClue) : statLabels.map((label, index) => <div className={`clue stat-clue ${unlockedStats[index] ? 'unlocked' : 'locked'}`} key={label}><div className="stat-content"><span className="clue-label">{label}</span>{unlockedStats[index] ? <div className="stat-row"><div className="stat-track" role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={255} aria-valuenow={Math.min(game.pokemon.stats[index].base_stat, 255)}><span className={`stat-fill stat-color-${index}`} style={{ width: `${Math.min(game.pokemon.stats[index].base_stat / 255 * 100, 100)}%` }} /></div><strong className="stat-value">{game.pokemon.stats[index].base_stat}</strong></div> : <strong>{language === 'es' ? `Se desbloqueará en ${index - attempts} ${index - attempts === 1 ? 'fallo' : 'fallos'}` : `Unlocks in ${index - attempts} ${index - attempts === 1 ? 'miss' : 'misses'}`}</strong>}</div></div>)}</div></div></div>
           <section className="extra-clues"><h3>{language === 'es' ? 'PISTAS ADICIONALES' : 'ADDITIONAL CLUES'}</h3><div className="extra-clues-grid">{[3, 4].map(renderClue)}</div></section></>}
           <div className="guess-section">{revealed ? <div className="result" role="status"><div><span className="section-kicker"><span className="red-dot" /> {status === 'won' ? copy.success : copy.revealed}</span><h3>{status === 'won' ? copy.win : copy.answer} <em>{displayName}!</em></h3></div><button className="primary-button" onClick={reset}>{copy.newGame} <span>↗</span></button></div> : <><label htmlFor="guess">{copy.question}</label><form onSubmit={submit}><div className="suggestion-field"><input id="guess" role="combobox" aria-autocomplete="list" aria-expanded={showSuggestions} aria-controls="pokemon-suggestions" aria-activedescendant={showSuggestions && activeSuggestion >= 0 ? `pokemon-option-${suggestions[activeSuggestion].id}` : undefined} value={guess} onChange={(event) => { setGuess(event.target.value); setSuggestionsOpen(true); setActiveSuggestion(-1) }} onFocus={() => setSuggestionsOpen(true)} onBlur={() => setSuggestionsOpen(false)} onKeyDown={handleSuggestionKey} placeholder={copy.placeholder} autoComplete="off" />{showSuggestions && <ul id="pokemon-suggestions" className="suggestion-list" role="listbox">{suggestions.map((entry, index) => <li id={`pokemon-option-${entry.id}`} key={entry.id} role="option" aria-selected={index === activeSuggestion} onPointerDown={(event) => event.preventDefault()} onClick={() => selectSuggestion(entry.name)}><img src={`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${entry.id}.png`} alt="" loading="lazy" /><span>{entry.name}</span></li>)}</ul>}</div><button className="primary-button" type="submit">{copy.submit} <span>↗</span></button></form><div className="form-foot"><span className={feedback ? 'feedback' : ''} role="status">{feedback ? copy[feedback] : copy.helper}</span><button className="reveal-button" onClick={() => setStatus('revealed')}>{copy.reveal} ↗</button></div></>}</div></>}
-      {mode === 'pokedle' && game && <section className="pokedle-results"><p className="pokedle-legend">{language === 'es' ? 'Verde: coincide · Rojo: no coincide · ↑ mayor · ↓ menor. Los tipos coinciden aunque estén en otra posición.' : 'Green: match · Red: no match · ↑ higher · ↓ lower. Types match even in a different position.'}</p>{comparisons.length > 0 && <div className="pokedle-scroll"><table><thead><tr><th>Pokémon</th><th>{language === 'es' ? 'Generación' : 'Generation'}</th><th>{language === 'es' ? 'Tipo 1' : 'Type 1'}</th><th>{language === 'es' ? 'Tipo 2' : 'Type 2'}</th><th>Color</th><th>{language === 'es' ? 'Altura' : 'Height'}</th><th>{language === 'es' ? 'Peso' : 'Weight'}</th></tr></thead><tbody>{comparisons.map((entry) => { const guessedGeneration = Number(entry.species.generation.url.split('/').filter(Boolean).pop()); const targetGeneration = Number(game.species.generation.url.split('/').filter(Boolean).pop()); const targetTypes = game.pokemon.types.map((type) => type.type.name); return <tr key={entry.id}><th scope="row"><img src={entry.pokemon.sprites.front_default} alt="" /><span>{entry.name}</span></th><td className={compareNumber(guessedGeneration, targetGeneration)}>{guessedGeneration}{direction(guessedGeneration, targetGeneration)}</td>{[0, 1].map((index) => { const type = entry.types[index]; const matches = type ? targetTypes.includes(type.name) : targetTypes.length < 2; return <td key={index} className={matches ? 'match' : 'miss'}>{type ? localizedName(type.names, language, type.name) : '—'}</td> })}<td className={compareNumber(entry.species.color.name, game.species.color.name)}>{language === 'es' ? spanishColors[entry.species.color.name] || titleCase(entry.species.color.name) : titleCase(entry.species.color.name)}</td><td className={compareNumber(entry.pokemon.height, game.pokemon.height)}>{entry.pokemon.height / 10} m{direction(entry.pokemon.height, game.pokemon.height)}</td><td className={compareNumber(entry.pokemon.weight, game.pokemon.weight)}>{entry.pokemon.weight / 10} kg{direction(entry.pokemon.weight, game.pokemon.weight)}</td></tr> })}</tbody></table></div>}</section>}
+      {mode === 'pokedle' && game && <section className="pokedle-results"><p className="pokedle-legend">{language === 'es' ? 'Verde: coincide · Rojo: no coincide · ↑ mayor · ↓ menor. Los tipos coinciden aunque estén en otra posición.' : 'Green: match · Red: no match · ↑ higher · ↓ lower. Types match even in a different position.'}</p>{comparisons.length > 0 && <div className="pokedle-scroll"><table><thead><tr><th>Pokémon</th><th>{language === 'es' ? 'Generación' : 'Generation'}</th><th>{language === 'es' ? 'Tipo 1' : 'Type 1'}</th><th>{language === 'es' ? 'Tipo 2' : 'Type 2'}</th><th>Color</th><th>{language === 'es' ? 'Altura' : 'Height'}</th><th>{language === 'es' ? 'Peso' : 'Weight'}</th><th>{language === 'es' ? 'Puede evolucionar' : 'Can evolve'}</th><th>{language === 'es' ? 'Etapa evolutiva' : 'Evolution stage'}</th><th>{language === 'es' ? 'Estadísticas totales' : 'Base stat total'}</th><th>{language === 'es' ? 'Forma corporal' : 'Body shape'}</th></tr></thead><tbody>{comparisons.map((entry) => { const guessedGeneration = Number(entry.species.generation.url.split('/').filter(Boolean).pop()); const targetGeneration = Number(game.species.generation.url.split('/').filter(Boolean).pop()); const targetTypes = game.pokemon.types.map((type) => type.type.name); const total = entry.pokemon.stats.reduce((sum, stat) => sum + stat.base_stat, 0); const targetTotal = game.pokemon.stats.reduce((sum, stat) => sum + stat.base_stat, 0); const shapeAvailable = entry.species.shape && game.species.shape; return <tr key={entry.id}><th scope="row"><img src={entry.pokemon.sprites.front_default} alt="" /><span>{entry.name}</span></th><td className={compareNumber(guessedGeneration, targetGeneration)}>{guessedGeneration}{direction(guessedGeneration, targetGeneration)}</td>{[0, 1].map((index) => { const type = entry.types[index]; const matches = type ? targetTypes.includes(type.name) : targetTypes.length < 2; return <td key={index} className={matches ? 'match' : 'miss'}>{type ? localizedName(type.names, language, type.name) : '—'}</td> })}<td className={compareNumber(entry.species.color.name, game.species.color.name)}>{language === 'es' ? spanishColors[entry.species.color.name] || titleCase(entry.species.color.name) : titleCase(entry.species.color.name)}</td><td className={compareNumber(entry.pokemon.height, game.pokemon.height)}>{entry.pokemon.height / 10} m{direction(entry.pokemon.height, game.pokemon.height)}</td><td className={compareNumber(entry.pokemon.weight, game.pokemon.weight)}>{entry.pokemon.weight / 10} kg{direction(entry.pokemon.weight, game.pokemon.weight)}</td><td className={compareNumber(entry.evolution.canEvolve, game.evolution.canEvolve)}>{entry.evolution.canEvolve ? language === 'es' ? 'Sí' : 'Yes' : 'No'}</td><td className={compareNumber(entry.evolution.stage, game.evolution.stage)}>{entry.evolution.stage}{direction(entry.evolution.stage, game.evolution.stage)}</td><td className={compareNumber(total, targetTotal)}>{total}{direction(total, targetTotal)}</td><td className={shapeAvailable ? compareNumber(entry.species.shape.name, game.species.shape.name) : ''}>{entry.shape ? localizedName(entry.shape.names, language, entry.shape.name) : '—'}</td></tr> })}</tbody></table></div>}</section>}
       {mode !== 'pokedle' && game && failedGuesses.length > 0 && <section className="guess-history" aria-label={language === 'es' ? 'Pokémon intentados' : 'Pokémon guessed'}><h3>{language === 'es' ? 'POKÉMON INTENTADOS' : 'POKÉMON GUESSED'}</h3><ul>{failedGuesses.map((entry) => <li key={normalize(entry.name)}>{entry.id && <img src={`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${entry.id}.png`} alt="" loading="lazy" />}<span>{entry.name}</span></li>)}</ul></section>}</section><div className="below-card"><span>✦</span> {copy.footer} <span>✦</span></div></main><footer><span>© POKÉGAMES</span><span>POWERED BY <a href="https://pokeapi.co/" target="_blank" rel="noreferrer">POKÉAPI ↗</a></span></footer>
   </div>
 }

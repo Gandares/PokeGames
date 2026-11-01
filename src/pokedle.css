@@ -1,7 +1,7 @@
 .pokedle-results { margin-top: 25px; }
 .pokedle-legend { color: var(--muted); font-size: 11px; line-height: 1.6; margin-bottom: 14px; }
 .pokedle-scroll { overflow-x: auto; }
-.pokedle-results table { width: 100%; min-width: 610px; border-collapse: separate; border-spacing: 5px; table-layout: fixed; }
+.pokedle-results table { width: 100%; min-width: 1100px; border-collapse: separate; border-spacing: 5px; table-layout: fixed; }
 .pokedle-results thead th { color: var(--muted); font-size: 10px; text-transform: uppercase; }
 .pokedle-results tbody th, .pokedle-results td { padding: 10px 5px; border-radius: 7px; text-align: center; font-size: 12px; overflow-wrap: anywhere; }
 .pokedle-results tbody th { background: var(--soft); color: var(--ink); }
