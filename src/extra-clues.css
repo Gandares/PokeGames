@@ -1,2 +1,9 @@
 .reveal-clue { padding: 0; border: 0; background: transparent; color: var(--accent); font: inherit; text-align: left; }
 .reveal-clue:hover { text-decoration: underline; }
+.extra-clues { margin-top: 25px; padding-top: 23px; border-top: 1px solid var(--line); }
+.extra-clues h3 { margin: 0 0 12px; color: var(--muted); font: 700 9px 'Space Grotesk', sans-serif; letter-spacing: 1.4px; }
+.extra-clues-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.pokemon-types { display: inline-flex; flex-wrap: wrap; gap: 5px; }
+.pokemon-type { display: inline-block; padding: 4px 9px; border-radius: 5px; color: #fff; background: #6e7771; font-size: 11px; }
+.type-normal { background: #74715d; } .type-fire { background: #b64319; } .type-water { background: #2864bb; } .type-electric { background: #806400; } .type-grass { background: #377932; } .type-ice { background: #256f79; } .type-fighting { background: #aa3631; } .type-poison { background: #833d94; } .type-ground { background: #8b6225; } .type-flying { background: #66569f; } .type-psychic { background: #b63262; } .type-bug { background: #63751d; } .type-rock { background: #79691d; } .type-ghost { background: #604d82; } .type-dragon { background: #5138b5; } .type-dark { background: #5a463d; } .type-steel { background: #626b7b; } .type-fairy { background: #a7426d; }
+@media (max-width: 650px) { .extra-clues-grid { grid-template-columns: 1fr; } }
