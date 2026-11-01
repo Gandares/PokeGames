@@ -68,15 +68,15 @@ function App() {
   }, [round])
 
   const reset = () => { setStatus('loading'); setGame(null); setAttempts(0); setGuess(''); setFeedback(''); setExtraClues([false, false]); setRound((value) => value + 1) }
-  const submit = (event) => {
-    event.preventDefault()
-    if (!guess.trim() || status !== 'playing') return
+  const checkGuess = (value) => {
+    if (!value.trim() || status !== 'playing') return
     setSuggestionsOpen(false)
     setActiveSuggestion(-1)
     const accepted = [game.pokemon.name, ...game.species.names.map((entry) => entry.name)]
-    if (accepted.some((name) => normalize(name) === normalize(guess))) { setStatus('won'); setFeedback(''); setExtraClues([true, true]) }
+    if (accepted.some((name) => normalize(name) === normalize(value))) { setStatus('won'); setFeedback(''); setExtraClues([true, true]) }
     else { setAttempts((value) => value + 1); setFeedback('wrong'); setGuess('') }
   }
+  const submit = (event) => { event.preventDefault(); checkGuess(guess) }
   const revealed = status === 'won' || status === 'revealed'
   const displayName = game && localizedName(game.species.names, language, game.pokemon.name)
   const slots = game ? [game.pokemon.abilities.findIndex((ability) => ability.slot === 1), game.pokemon.abilities.findIndex((ability) => ability.slot === 2 && !ability.is_hidden), game.pokemon.abilities.findIndex((ability) => ability.is_hidden)] : [-1, -1, -1]
@@ -100,7 +100,7 @@ function App() {
   }
   const suggestions = guess.trim().length >= 3 ? species.filter((entry) => normalize(entry.name).startsWith(normalize(guess))) : []
   const showSuggestions = suggestionsOpen && suggestions.length > 0
-  const selectSuggestion = (name) => { setGuess(name); setSuggestionsOpen(false); setActiveSuggestion(-1) }
+  const selectSuggestion = (name) => { checkGuess(name) }
   const handleSuggestionKey = (event) => {
     if (!showSuggestions) return
     if (event.key === 'ArrowDown') { event.preventDefault(); setActiveSuggestion((current) => (current + 1) % suggestions.length) }
