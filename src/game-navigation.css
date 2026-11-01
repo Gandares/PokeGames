@@ -1,4 +1,10 @@
 .game-nav { display: flex; align-items: center; gap: 6px; margin-left: 32px; margin-right: auto; }
 .game-nav a { padding: 10px 12px; border-radius: 8px; color: var(--muted); text-decoration: none; font-size: 12px; font-weight: 700; }
 .game-nav a:hover, .game-nav a[aria-current="page"] { background: var(--soft); color: var(--accent); }
+.stat-content { width: 100%; min-width: 0; }
+.stat-row { display: flex; align-items: center; gap: 12px; }
+.stat-track { flex: 1; min-width: 0; height: 10px; overflow: hidden; border-radius: 999px; background: var(--line); }
+.stat-fill { display: block; height: 100%; border-radius: inherit; }
+.stat-value { flex: 0 0 32px; text-align: right; font-variant-numeric: tabular-nums; }
+.stat-color-0 { background: #d95151; } .stat-color-1 { background: #dd8538; } .stat-color-2 { background: #c3a52e; } .stat-color-3 { background: #5689d5; } .stat-color-4 { background: #65a75a; } .stat-color-5 { background: #c9608d; }
 @media (max-width: 650px) { .topbar { height: auto; min-height: 68px; flex-wrap: wrap; padding-top: 12px; } .game-nav { order: 3; width: 100%; margin: 8px 0 0; } .game-nav a { flex: 1; text-align: center; } }
