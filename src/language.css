@@ -1,0 +1,8 @@
+.language-selector { position: relative; }
+.language-selector summary { display: flex; align-items: center; gap: 7px; cursor: pointer; list-style: none; }
+.language-selector summary::-webkit-details-marker { display: none; }
+.language-selector summary:focus-visible { outline: 3px solid #e68165; outline-offset: 3px; }
+.flag { display: block; width: 24px; height: 16px; flex: none; border-radius: 2px; box-shadow: 0 0 0 1px #0002; }
+.language-menu { position: absolute; z-index: 5; top: calc(100% + 7px); right: 0; min-width: 145px; padding: 5px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; box-shadow: var(--shadow); }
+.language-menu button { display: flex; align-items: center; gap: 9px; width: 100%; border: 0; border-radius: 5px; padding: 9px; background: transparent; color: var(--ink); text-align: left; font-size: 12px; }
+.language-menu button:hover, .language-menu button[aria-pressed="true"] { background: var(--soft); }
