@@ -217,8 +217,11 @@ function App() {
   const [checkedPlacements, setCheckedPlacements] = useState(null)
   const [typePhaseDone, setTypePhaseDone] = useState(false)
   const [selectedType, setSelectedType] = useState(null)
+  const [dragPreview, setDragPreview] = useState(null)
   const [comparisons, setComparisons] = useState([])
   const requestVersion = useRef(0)
+  const touchDrag = useRef(null)
+  const suppressTypeClick = useRef(false)
   const audioContext = useRef(null)
   const copy = { ...text[language], duplicate: language === 'es' ? 'Ya has probado ese Pokémon.' : 'You already tried that Pokémon.', invalid: language === 'es' ? 'Selecciona un Pokémon válido de la lista.' : 'Select a valid Pokémon from the list.', checking: language === 'es' ? 'Comprobando Pokémon...' : 'Checking Pokémon...', compareError: language === 'es' ? 'No se ha podido comprobar. Inténtalo de nuevo.' : 'Could not check that Pokémon. Please try again.', correct: language === 'es' ? '¡Correcto! Sigue buscando.' : 'Correct! Keep looking.', finishTypes: language === 'es' ? '¡Encontraste todos! Termina de clasificar los tipos.' : 'All Pokémon found! Finish sorting the types.' }
 
@@ -265,7 +268,7 @@ function App() {
     return () => { active = false; controller.abort() }
   }, [round, mode])
 
-  const reset = useCallback(() => { requestVersion.current += 1; setStatus('loading'); setGame(null); setAttempts(0); setGuess(''); setFeedback(''); setExtraClues([false, false]); setFailedGuesses([]); setCorrectGuesses([]); setTypePlacements({}); setCheckedPlacements(null); setTypePhaseDone(false); setSelectedType(null); setComparisons([]); setRound((value) => value + 1) }, [])
+  const reset = useCallback(() => { requestVersion.current += 1; touchDrag.current = null; setDragPreview(null); setStatus('loading'); setGame(null); setAttempts(0); setGuess(''); setFeedback(''); setExtraClues([false, false]); setFailedGuesses([]); setCorrectGuesses([]); setTypePlacements({}); setCheckedPlacements(null); setTypePhaseDone(false); setSelectedType(null); setComparisons([]); setRound((value) => value + 1) }, [])
   const selectMode = useCallback((nextMode) => { if (nextMode !== mode) { setMode(nextMode); reset() } }, [mode, reset])
   useEffect(() => {
     const syncHash = () => selectMode(({ '#habilidades': 'abilities', '#estadisticas': 'stats', '#pokedle': 'pokedle', '#debilidades': 'effectiveness', '#tipos': 'typechallenge', '#movimientos': 'moves', '#sprite': 'sprite', '#colores': 'colors' })[window.location.hash] || 'home')
@@ -358,6 +361,28 @@ function App() {
     setCheckedPlacements({ ...typePlacements })
     if (effectiveness.every((type) => typePlacements[type.name] === type.multiplier)) { setTypePhaseDone(true); setSelectedType(null) }
   }
+  const startTouchDrag = (event, name) => {
+    if (event.pointerType !== 'touch') return
+    touchDrag.current = { pointerId: event.pointerId, name, startX: event.clientX, startY: event.clientY, moved: false }
+    event.currentTarget.setPointerCapture(event.pointerId)
+  }
+  const moveTouchDrag = (event) => {
+    const drag = touchDrag.current
+    if (!drag || drag.pointerId !== event.pointerId) return
+    if (Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) > 8) drag.moved = true
+    if (drag.moved) setDragPreview({ name: drag.name, x: event.clientX, y: event.clientY })
+  }
+  const finishTouchDrag = (event, cancelled = false) => {
+    const drag = touchDrag.current
+    if (!drag || drag.pointerId !== event.pointerId) return
+    touchDrag.current = null
+    setDragPreview(null)
+    if (!drag.moved || cancelled) return
+    const zone = document.elementFromPoint(event.clientX, event.clientY)?.closest('[data-type-zone]')
+    if (zone) placeType(drag.name, Number(zone.dataset.typeZone))
+    suppressTypeClick.current = true
+    setTimeout(() => { suppressTypeClick.current = false }, 0)
+  }
   const renderTypeChallenge = () => {
     const placements = status === 'revealed' ? Object.fromEntries(effectiveness.map((type) => [type.name, type.multiplier])) : typePlacements
     const locked = revealed || typePhaseDone
@@ -366,9 +391,9 @@ function App() {
       const result = checked ? placements[type.name] === type.multiplier ? 'type-correct' : 'type-incorrect' : ''
       const name = language === 'es' ? attackTypes[type.name] : titleCase(type.name)
       const resultLabel = checked ? placements[type.name] === type.multiplier ? language === 'es' ? 'correcto' : 'correct' : language === 'es' ? 'incorrecto' : 'incorrect' : ''
-      return <button type="button" key={type.name} draggable={!locked} className={`pokemon-type type-${type.name} type-token ${selectedType === type.name ? 'selected' : ''} ${result}`} aria-label={resultLabel ? `${name}: ${resultLabel}` : name} aria-pressed={selectedType === type.name} onClick={() => setSelectedType(selectedType === type.name ? null : type.name)} onDragStart={(event) => event.dataTransfer.setData('text/plain', type.name)} disabled={locked}>{name}</button>
+      return <button type="button" key={type.name} draggable={!locked} className={`pokemon-type type-${type.name} type-token ${selectedType === type.name ? 'selected' : ''} ${result}`} aria-label={resultLabel ? `${name}: ${resultLabel}` : name} aria-pressed={selectedType === type.name} onClick={() => { if (!suppressTypeClick.current) setSelectedType(selectedType === type.name ? null : type.name) }} onDragStart={(event) => event.dataTransfer.setData('text/plain', type.name)} onPointerDown={(event) => startTouchDrag(event, type.name)} onPointerMove={moveTouchDrag} onPointerUp={finishTouchDrag} onPointerCancel={(event) => finishTouchDrag(event, true)} disabled={locked}>{name}</button>
     }
-    return <section className="type-challenge"><h3>{language === 'es' ? 'CLASIFICA LOS TIPOS DE ATAQUE' : 'SORT ATTACK TYPES'}</h3><p>{language === 'es' ? 'Arrastra cada tipo a su multiplicador o selecciónalo y pulsa una casilla. Después, comprueba tus respuestas: verde es correcto y rojo es incorrecto.' : 'Drag each type to its multiplier, or select it and choose a box. Then check your answers: green is correct and red is incorrect.'}</p><div className="type-palette">{effectiveness.filter((type) => placements[type.name] === undefined).map(typeButton)}</div><div className="type-zones">{[4, 2, 1, 0.5, 0.25, 0].map((multiplier) => <div className="type-zone" key={multiplier} onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); placeType(event.dataTransfer.getData('text/plain'), multiplier) }}><button type="button" className="type-zone-label" onClick={() => selectedType && placeType(selectedType, multiplier)} disabled={!selectedType || locked} aria-label={`${language === 'es' ? 'Colocar en' : 'Place in'} ×${multiplier}`}>×{multiplier} {selectedType && !locked ? '+' : ''}</button><div className="type-zone-tokens">{effectiveness.filter((type) => placements[type.name] === multiplier).map(typeButton)}</div></div>)}</div>{!typePhaseDone && <button type="button" className="primary-button check-types" onClick={checkTypes} disabled={Object.keys(typePlacements).length === 0}>{language === 'es' ? 'Comprobar tipos' : 'Check types'}</button>}{typePhaseDone && <p className="types-complete" role="status">{language === 'es' ? '¡Todos los tipos son correctos! Ahora adivina los Pokémon.' : 'All types are correct! Now guess the Pokémon.'}</p>}</section>
+    return <section className="type-challenge">{dragPreview && <span className={`pokemon-type type-${dragPreview.name} type-drag-preview`} style={{ left: dragPreview.x, top: dragPreview.y }} aria-hidden="true">{language === 'es' ? attackTypes[dragPreview.name] : titleCase(dragPreview.name)}</span>}<h3>{language === 'es' ? 'CLASIFICA LOS TIPOS DE ATAQUE' : 'SORT ATTACK TYPES'}</h3><p>{language === 'es' ? 'Arrastra cada tipo a su multiplicador o selecciónalo y pulsa una casilla. Después, comprueba tus respuestas: verde es correcto y rojo es incorrecto.' : 'Drag each type to its multiplier, or select it and choose a box. Then check your answers: green is correct and red is incorrect.'}</p><div className="type-palette">{effectiveness.filter((type) => placements[type.name] === undefined).map(typeButton)}</div><div className="type-zones">{[4, 2, 1, 0.5, 0.25, 0].map((multiplier) => <div className="type-zone" key={multiplier} data-type-zone={multiplier} onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); placeType(event.dataTransfer.getData('text/plain'), multiplier) }}><button type="button" className="type-zone-label" onClick={() => selectedType && placeType(selectedType, multiplier)} disabled={!selectedType || locked} aria-label={`${language === 'es' ? 'Colocar en' : 'Place in'} ×${multiplier}`}>×{multiplier} {selectedType && !locked ? '+' : ''}</button><div className="type-zone-tokens">{effectiveness.filter((type) => placements[type.name] === multiplier).map(typeButton)}</div></div>)}</div>{!typePhaseDone && <button type="button" className="primary-button check-types" onClick={checkTypes} disabled={Object.keys(typePlacements).length === 0}>{language === 'es' ? 'Comprobar tipos' : 'Check types'}</button>}{typePhaseDone && <p className="types-complete" role="status">{language === 'es' ? '¡Todos los tipos son correctos! Ahora adivina los Pokémon.' : 'All types are correct! Now guess the Pokémon.'}</p>}</section>
   }
   const renderClue = (index) => {
     const remaining = clueThresholds[index] - attempts

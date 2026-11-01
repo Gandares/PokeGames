@@ -3,6 +3,8 @@
 .type-challenge p { color: var(--muted); font-size: 11px; line-height: 1.6; }
 .type-palette, .type-zone-tokens { display: flex; flex-wrap: wrap; gap: 5px; min-height: 30px; align-items: center; }
 .type-token { border: 2px solid transparent; cursor: grab; font-weight: 700; }
+.type-token:not(:disabled) { touch-action: none; user-select: none; -webkit-user-select: none; }
+.type-drag-preview { position: fixed; z-index: 100; pointer-events: none; transform: translate(-50%, -50%); box-shadow: 0 5px 18px #0004; }
 .type-token.selected { box-shadow: 0 0 0 3px var(--accent); }
 .type-token.type-correct { outline: 3px solid #238a42; outline-offset: 1px; }
 .type-token.type-incorrect { outline: 3px solid #dc3939; outline-offset: 1px; }
