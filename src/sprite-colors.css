@@ -1,8 +1,6 @@
 .sprite-colors { display: flex; flex-direction: column; justify-content: center; gap: 14px; height: 100%; padding: 22px; border: 1px solid var(--line); border-radius: 10px; background: var(--soft); }
 .sprite-colors h3 { font: 700 19px 'Space Grotesk', sans-serif; letter-spacing: -.5px; }
 .sprite-colors p { color: var(--muted); font-size: 12px; line-height: 1.6; }
-.sprite-colors-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
-.sprite-colors-item { min-width: 0; }
-.sprite-colors-swatch { height: 86px; border: 1px solid #80808066; border-radius: 9px; }
-.sprite-colors-item span { display: block; margin-top: 8px; color: var(--muted); font: 700 10px 'Space Grotesk', sans-serif; letter-spacing: .5px; }
+.sprite-color-stripes { display: flex; flex-direction: column; height: 220px; overflow: hidden; border: 1px solid #80808066; border-radius: 9px; }
+.sprite-color-stripe { flex: 1; min-height: 0; }
 .game-tile-colors .game-tile-icon { background: #f9e7ee; color: #ac5b7a; }
