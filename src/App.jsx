@@ -15,9 +15,15 @@ const text = {
   en: { badge: 'THE POKÉMON CHALLENGE', title: 'Who’s that', titleEnd: 'Pokémon?', intro: 'Put your knowledge to the test. One mystery Pokémon, its abilities, and all the clues you need.', play: 'GUESS THE POKÉMON', round: 'CURRENT GAME', hints: 'ABILITY CLUES', attempts: 'incorrect guesses', primary: 'PRIMARY ABILITY', secondary: 'SECONDARY ABILITY', hidden: 'HIDDEN ABILITY', unlock2: 'Revealed after 2 misses', unlock4: 'Revealed after 4 misses', none: 'No ability in this slot', question: 'KNOW WHO IT IS?', placeholder: 'Enter a Pokémon name...', submit: 'Check', helper: 'Enter a name and press check', wrong: 'That’s not it. Keep trying!', win: 'That’s right! You discovered', newGame: 'Play again', loading: 'Preparing your mystery Pokémon...', error: 'Could not connect to PokéAPI.', retry: 'Try again', theme: 'Change theme', language: 'Cambiar idioma a español', footer: 'MADE FOR CURIOUS TRAINERS', counter: 'CLUES UNLOCKED', success: 'MYSTERY SOLVED!', reveal: 'REVEAL POKÉMON', answer: 'The Pokémon was', revealed: 'POKÉMON REVEALED' },
 }
 
-const normalize = (value) => value.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace('♀', 'f').replace('♂', 'm').replace(/[ .’':-]/g, '')
+const normalize = (value) => value.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace('♀', 'f').replace('♂', 'm').replace(/[ .’'():-]/g, '')
 const titleCase = (value) => value.replace(/(^|[-\s])\S/g, (letter) => letter.toUpperCase()).replaceAll('-', ' ')
 const speciesName = (name) => name === 'nidoran-f' ? 'Nidoran♀' : name === 'nidoran-m' ? 'Nidoran♂' : titleCase(name)
+const variantSuffix = /-(mega(?:-[xyz])?|alola|galar(?:-standard|-zen)?|hisui|paldea(?:-(?:combat|blaze|aqua)-breed)?)$/
+const variantName = (name) => {
+  const match = name.match(variantSuffix)
+  if (!match) return speciesName(name)
+  return `${speciesName(name.slice(0, -match[0].length))} (${titleCase(match[1])})`
+}
 const spanishColors = { black: 'Negro', blue: 'Azul', brown: 'Marrón', gray: 'Gris', green: 'Verde', pink: 'Rosa', purple: 'Morado', red: 'Rojo', white: 'Blanco', yellow: 'Amarillo' }
 const attackTypes = { normal: 'Normal', fire: 'Fuego', water: 'Agua', electric: 'Eléctrico', grass: 'Planta', ice: 'Hielo', fighting: 'Lucha', poison: 'Veneno', ground: 'Tierra', flying: 'Volador', psychic: 'Psíquico', bug: 'Bicho', rock: 'Roca', ghost: 'Fantasma', dragon: 'Dragón', dark: 'Siniestro', steel: 'Acero', fairy: 'Hada' }
 const spanishShapes = { ball: 'Esférico', squiggle: 'Serpentino', fish: 'Pez', arms: 'Con brazos', blob: 'Amorfo', upright: 'Erguido', legs: 'Con patas', quadruped: 'Cuadrúpedo', wings: 'Con alas', tentacles: 'Con tentáculos', heads: 'Varias cabezas', humanoid: 'Humanoide', 'bug-wings': 'Alas de insecto', armor: 'Con armadura' }
@@ -52,16 +58,22 @@ async function getEvolutionInfo(species, signal) {
 async function getPokemon(mode, signal) {
   let id
   let solutions = []
+  let candidates = []
   if (mode === 'effectiveness') {
-    const typeResponses = await Promise.all(Object.keys(attackTypes).map((name) => fetch(`https://pokeapi.co/api/v2/type/${name}`, { signal })))
-    if (typeResponses.some((response) => !response.ok)) throw new Error('types')
+    const [speciesListResponse, ...typeResponses] = await Promise.all([fetch('https://pokeapi.co/api/v2/pokemon-species?limit=1025', { signal }), ...Object.keys(attackTypes).map((name) => fetch(`https://pokeapi.co/api/v2/type/${name}`, { signal }))])
+    if (!speciesListResponse.ok || typeResponses.some((response) => !response.ok)) throw new Error('types')
+    const speciesList = await speciesListResponse.json()
+    const speciesIds = new Map(speciesList.results.map((entry) => [entry.name, Number(entry.url.split('/').filter(Boolean).pop())]))
     const allTypes = await Promise.all(typeResponses.map((response) => response.json()))
     const pokemonTypes = new Map()
     for (const type of allTypes) {
       for (const entry of type.pokemon) {
         const id = Number(entry.pokemon.url.split('/').filter(Boolean).pop())
-        if (id < 1 || id > 1025) continue
-        if (!pokemonTypes.has(id)) pokemonTypes.set(id, { id: String(id), name: speciesName(entry.pokemon.name), types: [] })
+        const variant = entry.pokemon.name.match(variantSuffix)
+        const baseName = variant ? entry.pokemon.name.slice(0, -variant[0].length) : entry.pokemon.name
+        const dexNumber = id <= 1025 ? id : variant ? speciesIds.get(baseName) : null
+        if (!dexNumber) continue
+        if (!pokemonTypes.has(id)) pokemonTypes.set(id, { id: String(id), dexNumber, name: variantName(entry.pokemon.name), types: [] })
         pokemonTypes.get(id).types.push(type.name)
       }
     }
@@ -73,7 +85,8 @@ async function getPokemon(mode, signal) {
     }
     const availableCombinations = [...combinations.values()]
     if (!availableCombinations.length) throw new Error('types')
-    solutions = availableCombinations[Math.floor(Math.random() * availableCombinations.length)].sort((first, second) => Number(first.id) - Number(second.id))
+    candidates = [...pokemonTypes.values()].sort((first, second) => first.dexNumber - second.dexNumber || Number(first.id) - Number(second.id))
+    solutions = availableCombinations[Math.floor(Math.random() * availableCombinations.length)].sort((first, second) => first.dexNumber - second.dexNumber || Number(first.id) - Number(second.id))
     id = solutions[0].id
   } else {
     while (true) {
@@ -100,7 +113,7 @@ async function getPokemon(mode, signal) {
   if (!speciesResponse.ok || detailResponses.some((response) => !response.ok)) throw new Error('details')
   const [species, ...details] = await Promise.all([speciesResponse.json(), ...detailResponses.map((response) => response.json())])
   const evolution = mode === 'pokedle' ? await getEvolutionInfo(species, signal) : null
-  return { pokemon, species, evolution, solutions, abilities: details.slice(0, pokemon.abilities.length), types: details.slice(pokemon.abilities.length) }
+  return { pokemon, species, evolution, solutions, candidates, abilities: details.slice(0, pokemon.abilities.length), types: details.slice(pokemon.abilities.length) }
 }
 
 function localizedName(names, language, fallback) {
@@ -182,6 +195,7 @@ function App() {
     window.addEventListener('hashchange', syncHash)
     return () => window.removeEventListener('hashchange', syncHash)
   }, [selectMode])
+  const searchableSpecies = mode === 'effectiveness' && game ? game.candidates : species
   const checkGuess = async (value) => {
     if (!value.trim() || status !== 'playing') return
     try {
@@ -193,7 +207,7 @@ function App() {
     setActiveSuggestion(-1)
     if ([...failedGuesses, ...correctGuesses].some((entry) => normalize(entry.name) === normalize(value))) { setFeedback('duplicate'); return }
     if (mode === 'effectiveness') {
-      const selected = species.find((entry) => normalize(entry.name) === normalize(value))
+      const selected = searchableSpecies.find((entry) => normalize(entry.name) === normalize(value))
       if (!selected) { setFeedback('invalid'); return }
       if (game.solutions.some((entry) => entry.id === selected.id)) {
         setCorrectGuesses((current) => [...current, selected])
@@ -233,7 +247,7 @@ function App() {
   const submit = (event) => {
     event.preventDefault()
     if (!guess.trim()) return
-    const exact = species.find((entry) => normalize(entry.name) === normalize(guess))
+    const exact = searchableSpecies.find((entry) => normalize(entry.name) === normalize(guess))
     if (exact) checkGuess(exact.name)
     else if (suggestions.length) checkGuess(suggestions[0].name)
     else setFeedback('invalid')
@@ -270,7 +284,7 @@ function App() {
     }
     return <div className={`clue ${unlocked[index] ? 'unlocked' : 'locked'}`} key={labels[index]}><span className="clue-number">{unlocked[index] ? '✦' : '⌑'}</span><div><span className="clue-label">{labels[index]}</span><strong>{content}</strong></div><span className="clue-index">0{index + 1}</span></div>
   }
-  const suggestions = guess.trim().length >= 3 ? species.filter((entry) => normalize(entry.name).startsWith(normalize(guess)) && ![...failedGuesses, ...correctGuesses].some((attempted) => normalize(attempted.name) === normalize(entry.name))) : []
+  const suggestions = guess.trim().length >= 3 ? searchableSpecies.filter((entry) => normalize(entry.name).startsWith(normalize(guess)) && ![...failedGuesses, ...correctGuesses].some((attempted) => normalize(attempted.name) === normalize(entry.name))) : []
   const showSuggestions = suggestionsOpen && suggestions.length > 0
   const selectSuggestion = (name) => { checkGuess(name) }
   const handleSuggestionKey = (event) => {
@@ -293,7 +307,7 @@ function App() {
           {mode !== 'effectiveness' && <section className="extra-clues"><h3>{language === 'es' ? 'PISTAS ADICIONALES' : 'ADDITIONAL CLUES'}</h3><div className="extra-clues-grid">{[3, 4].map(renderClue)}</div></section>}</>}
           <div className="guess-section">{revealed ? <div className="result" role="status"><div><span className="section-kicker"><span className="red-dot" /> {status === 'won' ? copy.success : copy.revealed}</span><h3>{mode === 'effectiveness' ? status === 'won' ? (language === 'es' ? '¡Has encontrado todos los Pokémon!' : 'You found every Pokémon!') : (language === 'es' ? 'Soluciones reveladas' : 'Solutions revealed') : <>{status === 'won' ? copy.win : copy.answer} <em>{displayName}!</em></>}</h3></div><button className="primary-button" onClick={reset}>{copy.newGame} <span>↗</span></button></div> : <><label htmlFor="guess">{copy.question}</label><form onSubmit={submit}><div className="suggestion-field"><input id="guess" role="combobox" aria-autocomplete="list" aria-expanded={showSuggestions} aria-controls="pokemon-suggestions" aria-activedescendant={showSuggestions && activeSuggestion >= 0 ? `pokemon-option-${suggestions[activeSuggestion].id}` : undefined} value={guess} onChange={(event) => { setGuess(event.target.value); setSuggestionsOpen(true); setActiveSuggestion(-1) }} onFocus={() => setSuggestionsOpen(true)} onBlur={() => setSuggestionsOpen(false)} onKeyDown={handleSuggestionKey} placeholder={copy.placeholder} autoComplete="off" />{showSuggestions && <ul id="pokemon-suggestions" className="suggestion-list" role="listbox">{suggestions.map((entry, index) => <li id={`pokemon-option-${entry.id}`} key={entry.id} role="option" aria-selected={index === activeSuggestion} onPointerDown={(event) => event.preventDefault()} onClick={() => selectSuggestion(entry.name)}><img src={`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${entry.id}.png`} alt="" loading="lazy" /><span>{entry.name}</span></li>)}</ul>}</div><button className="primary-button" type="submit">{copy.submit} <span>↗</span></button></form><div className="form-foot"><span className={feedback === 'correct' ? 'feedback-correct' : feedback ? 'feedback' : ''} role="status">{feedback ? copy[feedback] : copy.helper}</span><button className="reveal-button" onClick={() => setStatus('revealed')}>{mode === 'effectiveness' ? (language === 'es' ? 'MOSTRAR SOLUCIONES' : 'SHOW ANSWERS') : copy.reveal} ↗</button></div></>}</div></>}
       {mode === 'pokedle' && game && <section className="pokedle-results"><p className="pokedle-legend">{language === 'es' ? 'Verde: coincide · Rojo: no coincide · ↑ mayor · ↓ menor. Los tipos coinciden aunque estén en otra posición.' : 'Green: match · Red: no match · ↑ higher · ↓ lower. Types match even in a different position.'}</p>{comparisons.length > 0 && <div className="pokedle-scroll"><table><thead><tr><th>Pokémon</th><th>{language === 'es' ? 'Tipo 1' : 'Type 1'}</th><th>{language === 'es' ? 'Tipo 2' : 'Type 2'}</th><th>Color</th><th>{language === 'es' ? 'Altura' : 'Height'}</th><th>{language === 'es' ? 'Peso' : 'Weight'}</th><th>{language === 'es' ? 'Puede evolucionar' : 'Can evolve'}</th><th>{language === 'es' ? 'Etapa evolutiva' : 'Evolution stage'}</th><th>{language === 'es' ? 'Estadísticas totales' : 'Base stat total'}</th><th>{language === 'es' ? 'Forma corporal' : 'Body shape'}</th><th>{language === 'es' ? 'Generación' : 'Generation'}</th></tr></thead><tbody>{comparisons.map((entry) => { const guessedGeneration = Number(entry.species.generation.url.split('/').filter(Boolean).pop()); const targetGeneration = Number(game.species.generation.url.split('/').filter(Boolean).pop()); const targetTypes = game.pokemon.types.map((type) => type.type.name); const total = entry.pokemon.stats.reduce((sum, stat) => sum + stat.base_stat, 0); const targetTotal = game.pokemon.stats.reduce((sum, stat) => sum + stat.base_stat, 0); const shapeAvailable = entry.species.shape && game.species.shape; return <tr key={entry.id}><th scope="row"><img src={entry.pokemon.sprites.front_default} alt="" /><span>{entry.name}</span></th>{[0, 1].map((index) => { const type = entry.types[index]; const matches = type ? targetTypes.includes(type.name) : targetTypes.length < 2; return <td key={index} className={matches ? 'match' : 'miss'}>{type ? localizedName(type.names, language, type.name) : '—'}</td> })}<td className={compareNumber(entry.species.color.name, game.species.color.name)}>{language === 'es' ? spanishColors[entry.species.color.name] || titleCase(entry.species.color.name) : titleCase(entry.species.color.name)}</td><td className={compareNumber(entry.pokemon.height, game.pokemon.height)}>{entry.pokemon.height / 10} m{direction(entry.pokemon.height, game.pokemon.height)}</td><td className={compareNumber(entry.pokemon.weight, game.pokemon.weight)}>{entry.pokemon.weight / 10} kg{direction(entry.pokemon.weight, game.pokemon.weight)}</td><td className={compareNumber(entry.evolution.canEvolve, game.evolution.canEvolve)}>{entry.evolution.canEvolve ? language === 'es' ? 'Sí' : 'Yes' : 'No'}</td><td className={compareNumber(entry.evolution.stage, game.evolution.stage)}>{entry.evolution.stage}{direction(entry.evolution.stage, game.evolution.stage)}</td><td className={compareNumber(total, targetTotal)}>{total}{direction(total, targetTotal)}</td><td className={shapeAvailable ? compareNumber(entry.species.shape.name, game.species.shape.name) : ''}>{entry.shape ? localizedName(entry.shape.names, language, entry.shape.name) : '—'}</td><td className={compareNumber(guessedGeneration, targetGeneration)}>{guessedGeneration}{direction(guessedGeneration, targetGeneration)}</td></tr> })}</tbody></table></div>}</section>}
-      {mode === 'effectiveness' && game && (correctGuesses.length > 0 || status === 'revealed') && <section className="guess-history effectiveness-found"><h3>{status === 'revealed' ? (language === 'es' ? 'TODAS LAS SOLUCIONES' : 'ALL ANSWERS') : (language === 'es' ? 'POKÉMON ENCONTRADOS' : 'POKÉMON FOUND')}</h3><ul>{game.solutions.map((entry) => { const found = correctGuesses.find((pokemon) => pokemon.id === entry.id); return <li key={entry.id} className={found || status === 'revealed' ? 'found-slot' : 'empty-slot'}>{found || status === 'revealed' ? <><img src={`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${entry.id}.png`} alt="" loading="lazy" /><span className="found-details"><span className="found-number">#{Number(entry.id)}</span><span>{found?.name || entry.name}</span></span></> : <span aria-label={language === 'es' ? 'Pokémon por encontrar' : 'Pokémon not yet found'}>?</span>}</li> })}</ul></section>}
+      {mode === 'effectiveness' && game && (correctGuesses.length > 0 || status === 'revealed') && <section className="guess-history effectiveness-found"><h3>{status === 'revealed' ? (language === 'es' ? 'TODAS LAS SOLUCIONES' : 'ALL ANSWERS') : (language === 'es' ? 'POKÉMON ENCONTRADOS' : 'POKÉMON FOUND')}</h3><ul>{game.solutions.map((entry) => { const found = correctGuesses.find((pokemon) => pokemon.id === entry.id); return <li key={entry.id} className={found || status === 'revealed' ? 'found-slot' : 'empty-slot'}>{found || status === 'revealed' ? <><img src={`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${entry.id}.png`} alt="" loading="lazy" /><span className="found-details"><span className="found-number">#{entry.dexNumber}</span><span>{found?.name || entry.name}</span></span></> : <span aria-label={language === 'es' ? 'Pokémon por encontrar' : 'Pokémon not yet found'}>?</span>}</li> })}</ul></section>}
       {mode !== 'pokedle' && game && failedGuesses.length > 0 && <section className="guess-history" aria-label={language === 'es' ? 'Pokémon intentados' : 'Pokémon guessed'}><h3>{language === 'es' ? 'POKÉMON INTENTADOS' : 'POKÉMON GUESSED'}</h3><ul>{failedGuesses.map((entry) => <li key={normalize(entry.name)}>{entry.id && <img src={`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${entry.id}.png`} alt="" loading="lazy" />}<span>{entry.name}</span></li>)}</ul></section>}</section></>}<div className="below-card"><span>✦</span> {copy.footer} <span>✦</span></div></main><footer><span>© POKÉGAMES</span><span>POWERED BY <a href="https://pokeapi.co/" target="_blank" rel="noreferrer">POKÉAPI ↗</a></span></footer>
   </div>
 }
