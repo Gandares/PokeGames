@@ -74,14 +74,14 @@ function App() {
     setSuggestionsOpen(false)
     setActiveSuggestion(-1)
     const accepted = [game.pokemon.name, ...game.species.names.map((entry) => entry.name)]
-    if (accepted.some((name) => normalize(name) === normalize(guess))) { setStatus('won'); setFeedback('') }
+    if (accepted.some((name) => normalize(name) === normalize(guess))) { setStatus('won'); setFeedback(''); setExtraClues([true, true]) }
     else { setAttempts((value) => value + 1); setFeedback('wrong'); setGuess('') }
   }
   const revealed = status === 'won' || status === 'revealed'
   const displayName = game && localizedName(game.species.names, language, game.pokemon.name)
   const slots = game ? [game.pokemon.abilities.findIndex((ability) => ability.slot === 1), game.pokemon.abilities.findIndex((ability) => ability.slot === 2 && !ability.is_hidden), game.pokemon.abilities.findIndex((ability) => ability.is_hidden)] : [-1, -1, -1]
   const labels = [copy.primary, copy.secondary, copy.hidden, language === 'es' ? 'GENERACIÓN' : 'GENERATION', language === 'es' ? 'TIPOS' : 'TYPES']
-  const unlocked = [true, attempts >= 2 || revealed, attempts >= 4 || revealed, attempts >= 6, attempts >= 8]
+  const unlocked = [true, attempts >= 2 || revealed, attempts >= 4 || revealed, attempts >= 6 || status === 'won', attempts >= 8 || status === 'won']
   const suggestions = guess.trim().length >= 3 ? species.filter((entry) => normalize(entry.name).startsWith(normalize(guess))) : []
   const showSuggestions = suggestionsOpen && suggestions.length > 0
   const selectSuggestion = (name) => { setGuess(name); setSuggestionsOpen(false); setActiveSuggestion(-1) }
