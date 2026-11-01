@@ -1,0 +1,6 @@
+.level-moves { display: grid; gap: 8px; }
+.level-moves h3 { margin: 0; color: var(--muted); font: 700 10px 'Space Grotesk', sans-serif; letter-spacing: 1px; }
+.level-moves p { color: var(--muted); font-size: 11px; line-height: 1.5; }
+.level-moves ol { display: grid; gap: 7px; max-height: 400px; overflow-y: auto; padding: 0; margin: 0; list-style: none; }
+.level-moves li { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--soft); font-size: 13px; font-weight: 700; }
+.level-moves-level { min-width: 52px; color: var(--accent); font: 700 10px 'Space Grotesk', sans-serif; }
