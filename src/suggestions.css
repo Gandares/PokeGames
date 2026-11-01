@@ -1,0 +1,6 @@
+.suggestion-field { position: relative; flex: 1; min-width: 0; }
+.guess-section .suggestion-field input { height: 100%; }
+.suggestion-list { position: absolute; z-index: 4; left: 0; right: 0; top: calc(100% + 5px); max-height: 240px; overflow-y: auto; margin: 0; padding: 5px; list-style: none; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; box-shadow: var(--shadow); }
+.suggestion-list li { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 2px 10px; border-radius: 5px; color: var(--ink); font-size: 13px; cursor: pointer; }
+.suggestion-list li:hover, .suggestion-list li[aria-selected="true"] { background: var(--soft); }
+.suggestion-list img { width: 40px; height: 40px; object-fit: contain; image-rendering: pixelated; }
