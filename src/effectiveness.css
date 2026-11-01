@@ -5,4 +5,10 @@
 .effectiveness-types .pokemon-type { white-space: nowrap; }
 .effectiveness-empty { color: var(--muted); font-size: 12px; }
 .game-tile-effectiveness .game-tile-icon { background: #e3edf8; color: #3c70a8; }
+.effectiveness-progress { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; text-align: center; border-radius: 11px; background: var(--soft); border: 1px solid var(--line); }
+.effectiveness-progress > strong { margin: 14px 0; color: var(--accent); font: 700 48px 'Space Grotesk', sans-serif; }
+.effectiveness-progress > strong span { color: var(--muted); font-size: 24px; }
+.effectiveness-progress p { max-width: 240px; color: var(--muted); font-size: 13px; line-height: 1.6; }
+.feedback-correct { color: #39834c; }
+.effectiveness-found li { border-color: #85b890; }
 @media (min-width: 651px) and (max-width: 900px) { .game-nav a { padding-left: 7px; padding-right: 7px; font-size: 11px; } }
