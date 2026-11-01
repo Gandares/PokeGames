@@ -7,6 +7,7 @@ import './guess-history.css'
 import './game-navigation.css'
 import './pokedle.css'
 import './home.css'
+import './celebration.css'
 
 const text = {
   es: { badge: 'EL RETO POKÉMON', title: '¿Quién es ese', titleEnd: 'Pokémon?', intro: 'Pon a prueba tus conocimientos. Un Pokémon misterioso, sus habilidades y todas las pistas que necesitas.', play: 'ADIVINA EL POKÉMON', round: 'PARTIDA ACTUAL', hints: 'PISTAS DE HABILIDAD', attempts: 'intentos fallidos', primary: 'HABILIDAD PRINCIPAL', secondary: 'HABILIDAD SECUNDARIA', hidden: 'HABILIDAD OCULTA', unlock2: 'Se revela tras 2 fallos', unlock4: 'Se revela tras 4 fallos', none: 'No tiene esta habilidad', question: '¿YA SABES QUIÉN ES?', placeholder: 'Escribe el nombre de un Pokémon...', submit: 'Comprobar', helper: 'Introduce un nombre y pulsa comprobar', wrong: 'No es ese Pokémon. ¡Sigue intentándolo!', win: '¡Correcto! Has descubierto a', newGame: 'Jugar de nuevo', loading: 'Preparando tu Pokémon misterioso...', error: 'No hemos podido conectar con PokéAPI.', retry: 'Intentar de nuevo', theme: 'Cambiar tema', language: 'Change language to English', footer: 'HECHO PARA ENTRENADORES CURIOSOS', counter: 'PISTAS DESBLOQUEADAS', success: '¡MISTERIO RESUELTO!', reveal: 'REVELAR POKÉMON', answer: 'El Pokémon era', revealed: 'POKÉMON REVELADO' },
@@ -99,10 +100,36 @@ function App() {
   const [failedGuesses, setFailedGuesses] = useState([])
   const [comparisons, setComparisons] = useState([])
   const requestVersion = useRef(0)
+  const audioContext = useRef(null)
   const copy = { ...text[language], duplicate: language === 'es' ? 'Ya has probado ese Pokémon.' : 'You already tried that Pokémon.', invalid: language === 'es' ? 'Selecciona un Pokémon válido de la lista.' : 'Select a valid Pokémon from the list.', checking: language === 'es' ? 'Comprobando Pokémon...' : 'Checking Pokémon...', compareError: language === 'es' ? 'No se ha podido comprobar. Inténtalo de nuevo.' : 'Could not check that Pokémon. Please try again.' }
 
   useEffect(() => { localStorage.setItem('pokegames-language', language); document.documentElement.lang = language }, [language])
   useEffect(() => { localStorage.setItem('pokegames-theme', theme); document.documentElement.dataset.theme = theme }, [theme])
+  useEffect(() => () => { if (audioContext.current && audioContext.current.state !== 'closed') audioContext.current.close() }, [])
+  useEffect(() => {
+    const context = audioContext.current
+    if (status !== 'won' || !context || context.state === 'closed') return
+    const play = () => {
+      const start = context.currentTime
+      const notes = [523.25, 659.25, 783.99]
+      notes.forEach((frequency, index) => {
+      const oscillator = context.createOscillator()
+      const volume = context.createGain()
+      const noteStart = start + index * 0.12
+      oscillator.type = 'sine'
+      oscillator.frequency.value = frequency
+      volume.gain.setValueAtTime(0.0001, noteStart)
+      volume.gain.exponentialRampToValueAtTime(0.09, noteStart + 0.02)
+      volume.gain.exponentialRampToValueAtTime(0.0001, noteStart + 0.2)
+      oscillator.connect(volume)
+      volume.connect(context.destination)
+      oscillator.start(noteStart)
+      oscillator.stop(noteStart + 0.2)
+      })
+    }
+    if (context.state === 'running') play()
+    else context.resume().then(play).catch(() => {})
+  }, [status])
   useEffect(() => {
     const controller = new AbortController()
     fetch('https://pokeapi.co/api/v2/pokemon-species?limit=1025', { signal: controller.signal })
@@ -128,6 +155,11 @@ function App() {
   }, [selectMode])
   const checkGuess = async (value) => {
     if (!value.trim() || status !== 'playing') return
+    try {
+      const AudioContext = window.AudioContext || window.webkitAudioContext
+      if (AudioContext && !audioContext.current) audioContext.current = new AudioContext()
+      if (audioContext.current?.state === 'suspended') audioContext.current.resume().catch(() => {})
+    } catch { audioContext.current = null }
     setSuggestionsOpen(false)
     setActiveSuggestion(-1)
     if (failedGuesses.some((entry) => normalize(entry.name) === normalize(value))) { setFeedback('duplicate'); return }
@@ -198,6 +230,7 @@ function App() {
   const direction = (actual, target) => actual === target ? '' : actual < target ? ' ↑' : ' ↓'
 
   return <div className="app-shell">
+    {status === 'won' && <div className="celebration" aria-hidden="true">{Array.from({ length: 48 }, (_, index) => <span key={index} style={{ '--confetti-left': `${(index * 37 + 7) % 100}%`, '--confetti-delay': `${(index % 9) * 0.12}s`, '--confetti-duration': `${2.5 + (index % 7) * 0.2}s`, '--confetti-drift': `${(index % 2 ? 1 : -1) * (30 + index % 5 * 18)}px`, '--confetti-color': ['#e75f53', '#f3c85c', '#70ad80', '#76a8e1', '#b38aca'][index % 5] }} />)}</div>}
     <header className="topbar"><a className="brand" href="#top" onClick={() => selectMode('home')} aria-label={language === 'es' ? 'PokeGames, inicio' : 'PokeGames, home'}><span className="brand-icon"><span /></span><span>POKÉ<span>GAMES</span><small>{language === 'es' ? 'por Gandares' : 'by Gandares'}</small></span></a><nav className="game-nav" aria-label={language === 'es' ? 'Juegos' : 'Games'}><a href="#pokedle" aria-current={mode === 'pokedle' ? 'page' : undefined} onClick={() => selectMode('pokedle')}>Pokédle</a><a href="#habilidades" aria-current={mode === 'abilities' ? 'page' : undefined} onClick={() => selectMode('abilities')}>{language === 'es' ? 'Habilidades' : 'Abilities'}</a><a href="#estadisticas" aria-current={mode === 'stats' ? 'page' : undefined} onClick={() => selectMode('stats')}>{language === 'es' ? 'Estadísticas' : 'Stats'}</a></nav><div className="nav-actions"><button className="icon-button" onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')} aria-label={copy.theme}>{theme === 'light' ? '☾' : '☀'}</button><details className="language-selector"><summary className="lang-button" aria-label={language === 'es' ? 'Seleccionar idioma' : 'Select language'}>{flag(language)} {language.toUpperCase()} <span className="chevron">⌄</span></summary><div className="language-menu">{[['es', 'Español'], ['en', 'English']].map(([code, name]) => <button key={code} type="button" aria-pressed={language === code} onClick={(event) => { setLanguage(code); event.currentTarget.closest('details').open = false }}>{flag(code)} {name}</button>)}</div></details></div></header>
     <main id="top">{mode === 'home' ? <><section className="hero home-hero"><div className="eyebrow"><span className="dot" /> {language === 'es' ? 'ELIGE TU PRÓXIMO RETO' : 'CHOOSE YOUR NEXT CHALLENGE'}</div><h1>{language === 'es' ? 'Tu aventura' : 'Your next'}<br /><em>{language === 'es' ? 'empieza aquí.' : 'adventure awaits.'}</em></h1><p>{language === 'es' ? 'Tres formas de poner a prueba todo lo que sabes sobre Pokémon. ¿Por cuál empezamos?' : 'Three ways to put your Pokémon knowledge to the test. Which one will you play?'}</p></section><section className="home-games" aria-label={language === 'es' ? 'Selecciona un juego' : 'Choose a game'}>{[{ id: 'pokedle', hash: 'pokedle', icon: '◈', title: 'Pokédle', description: language === 'es' ? 'Compara tus intentos y encuentra al Pokémon oculto.' : 'Compare your guesses and find the hidden Pokémon.' }, { id: 'abilities', hash: 'habilidades', icon: '✦', title: language === 'es' ? 'Habilidades' : 'Abilities', description: language === 'es' ? 'Descubre al Pokémon misterioso a través de sus habilidades.' : 'Discover the mystery Pokémon using its abilities.' }, { id: 'stats', hash: 'estadisticas', icon: '▥', title: language === 'es' ? 'Estadísticas' : 'Stats', description: language === 'es' ? 'Adivina un Pokémon completamente evolucionado por sus estadísticas.' : 'Guess a fully evolved Pokémon from its stats.' }].map((item) => <a className={`game-tile game-tile-${item.id}`} key={item.id} href={`#${item.hash}`} onClick={() => selectMode(item.id)}><div className="game-tile-top"><span className="game-tile-icon" aria-hidden="true">{item.icon}</span></div><h2>{item.title}</h2><p>{item.description}</p><span className="game-tile-action">{language === 'es' ? 'JUGAR AHORA' : 'PLAY NOW'} <span aria-hidden="true">↗</span></span></a>)}</section></> : <><section className="hero"><div className="eyebrow"><span className="dot" /> {copy.badge}</div><h1>{copy.title}<br /><em>{copy.titleEnd}</em></h1><p>{mode === 'abilities' ? copy.intro : mode === 'stats' ? language === 'es' ? 'Adivina un Pokémon completamente evolucionado a partir de sus estadísticas base.' : 'Guess a fully evolved Pokémon from its base stats.' : language === 'es' ? 'Adivina el Pokémon misterioso comparando cada intento con sus características.' : 'Guess the mystery Pokémon by comparing each guess with its characteristics.'}</p><div className="hero-mark">✳ <span>{copy.play}</span> ✳</div></section>
       <section className="game-card"><div className="card-heading"><div><div className="section-kicker"><span className="red-dot" /> {copy.round}</div><h2>{language === 'es' ? 'PISTAS DEL POKÉMON' : 'POKÉMON CLUES'}</h2></div><div className="attempt-pill"><span>✕</span> <strong>{attempts}</strong> {copy.attempts}</div></div>

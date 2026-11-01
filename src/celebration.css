@@ -1,0 +1,5 @@
+.celebration { position: fixed; inset: 0; z-index: 20; overflow: hidden; pointer-events: none; }
+.celebration span { position: absolute; top: -20px; left: var(--confetti-left); width: 9px; height: 15px; border-radius: 2px; background: var(--confetti-color); opacity: 0; animation: confetti-fall var(--confetti-duration) var(--confetti-delay) ease-in forwards; }
+.celebration span:nth-child(3n) { width: 8px; height: 8px; border-radius: 50%; }
+@keyframes confetti-fall { 0% { opacity: 1; transform: translate3d(0, 0, 0) rotate(0); } 85% { opacity: 1; } 100% { opacity: 0; transform: translate3d(var(--confetti-drift), calc(100vh + 40px), 0) rotate(720deg); } }
+@media (prefers-reduced-motion: reduce) { .celebration { display: none; } }
