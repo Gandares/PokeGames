@@ -335,7 +335,7 @@ function App() {
     } else {
       content = <span className="pokemon-types">{game.types.map((type) => <span className={`pokemon-type type-${type.name}`} key={type.name}>{localizedName(type.names, language, type.name)}</span>)}</span>
     }
-    return <div className={`clue ${unlocked[index] ? 'unlocked' : 'locked'}`} key={labels[index]}><span className="clue-number">{unlocked[index] ? '✦' : '⌑'}</span><div><span className="clue-label">{labels[index]}</span><strong>{content}</strong></div><span className="clue-index">0{index + 1}</span></div>
+    return <div className={`clue ${unlocked[index] ? 'unlocked' : 'locked'}`} key={labels[index]}><span className="clue-number">{unlocked[index] ? '✦' : '⌑'}</span><div><span className="clue-label">{labels[index]}</span><strong>{content}</strong></div>{index < 3 && <span className="clue-index">0{index + 1}</span>}</div>
   }
   const suggestions = guess.trim().length >= 3 ? searchableSpecies.filter((entry) => normalize(entry.name).startsWith(normalize(guess)) && ![...failedGuesses, ...correctGuesses].some((attempted) => normalize(attempted.name) === normalize(entry.name))) : []
   const showSuggestions = suggestionsOpen && suggestions.length > 0
