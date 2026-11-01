@@ -3,4 +3,5 @@
 .sprite-colors p { color: var(--muted); font-size: 12px; line-height: 1.6; }
 .sprite-color-stripes { display: flex; flex-direction: column; height: 220px; overflow: hidden; border: 1px solid #80808066; border-radius: 9px; }
 .sprite-color-stripe { flex: 1; min-height: 0; }
+.colors-answer { image-rendering: pixelated; }
 .game-tile-colors .game-tile-icon { background: #f9e7ee; color: #ac5b7a; }
