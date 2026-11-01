@@ -1,0 +1,5 @@
+.guess-history { margin-top: 25px; padding-top: 23px; border-top: 1px solid var(--line); }
+.guess-history h3 { margin: 0 0 12px; color: var(--muted); font: 700 9px 'Space Grotesk', sans-serif; letter-spacing: 1.4px; }
+.guess-history ul { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.guess-history li { display: flex; align-items: center; gap: 5px; min-height: 38px; padding: 3px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--soft); font-size: 12px; font-weight: 600; }
+.guess-history img { width: 34px; height: 34px; object-fit: contain; image-rendering: pixelated; }
