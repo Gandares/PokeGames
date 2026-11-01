@@ -1,0 +1,8 @@
+.effectiveness-clues { display: grid; gap: 10px; }
+.effectiveness-group { padding: 12px; border: 1px solid var(--line); border-radius: 9px; background: var(--soft); }
+.effectiveness-group h3 { margin: 0 0 9px; color: var(--muted); font: 700 9px 'Space Grotesk', sans-serif; letter-spacing: 1px; }
+.effectiveness-types { display: flex; flex-wrap: wrap; gap: 5px; }
+.effectiveness-types .pokemon-type { white-space: nowrap; }
+.effectiveness-empty { color: var(--muted); font-size: 12px; }
+.game-tile-effectiveness .game-tile-icon { background: #e3edf8; color: #3c70a8; }
+@media (min-width: 651px) and (max-width: 900px) { .game-nav a { padding-left: 7px; padding-right: 7px; font-size: 11px; } }
