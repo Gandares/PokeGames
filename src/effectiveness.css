@@ -11,4 +11,5 @@
 .effectiveness-progress p { max-width: 240px; color: var(--muted); font-size: 13px; line-height: 1.6; }
 .feedback-correct { color: #39834c; }
 .effectiveness-found li { border-color: #85b890; }
+.effectiveness-found li.empty-slot { width: 125px; min-height: 42px; justify-content: center; border-style: dashed; border-color: var(--line); color: var(--muted); }
 @media (min-width: 651px) and (max-width: 900px) { .game-nav a { padding-left: 7px; padding-right: 7px; font-size: 11px; } }
