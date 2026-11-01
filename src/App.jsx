@@ -51,29 +51,6 @@ async function getEvolutionInfo(species, signal) {
 
 async function getPokemon(mode, signal) {
   let id
-  while (true) {
-    id = Math.floor(Math.random() * 1025) + 1
-    if (mode !== 'stats') break
-    const candidateResponse = await fetch(`https://pokeapi.co/api/v2/pokemon-species/${id}`, { signal })
-    if (!candidateResponse.ok) throw new Error('species')
-    const candidate = await candidateResponse.json()
-    const chainResponse = await fetch(candidate.evolution_chain.url, { signal })
-    if (!chainResponse.ok) throw new Error('evolution')
-    const chain = await chainResponse.json()
-    const stage = findEvolution(chain.chain, candidate.name)
-    if (stage && stage.evolves_to.length === 0) break
-  }
-  const pokemonResponse = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`, { signal })
-  if (!pokemonResponse.ok) throw new Error('pokemon')
-  const pokemon = await pokemonResponse.json()
-  const [speciesResponse, ...detailResponses] = await Promise.all([
-    fetch(pokemon.species.url, { signal }),
-    ...pokemon.abilities.map((ability) => fetch(ability.ability.url, { signal })),
-    ...pokemon.types.map((type) => fetch(type.type.url, { signal })),
-  ])
-  if (!speciesResponse.ok || detailResponses.some((response) => !response.ok)) throw new Error('details')
-  const [species, ...details] = await Promise.all([speciesResponse.json(), ...detailResponses.map((response) => response.json())])
-  const evolution = mode === 'pokedle' ? await getEvolutionInfo(species, signal) : null
   let solutions = []
   if (mode === 'effectiveness') {
     const typeResponses = await Promise.all(Object.keys(attackTypes).map((name) => fetch(`https://pokeapi.co/api/v2/type/${name}`, { signal })))
@@ -88,9 +65,41 @@ async function getPokemon(mode, signal) {
         pokemonTypes.get(id).types.push(type.name)
       }
     }
-    const targetTypes = pokemon.types.map((type) => type.type.name).sort().join(',')
-    solutions = [...pokemonTypes.values()].filter((entry) => entry.types.sort().join(',') === targetTypes).sort((first, second) => Number(first.id) - Number(second.id))
+    const combinations = new Map()
+    for (const entry of pokemonTypes.values()) {
+      const key = entry.types.sort().join(',')
+      if (!combinations.has(key)) combinations.set(key, [])
+      combinations.get(key).push(entry)
+    }
+    const availableCombinations = [...combinations.values()]
+    if (!availableCombinations.length) throw new Error('types')
+    solutions = availableCombinations[Math.floor(Math.random() * availableCombinations.length)].sort((first, second) => Number(first.id) - Number(second.id))
+    id = solutions[0].id
+  } else {
+    while (true) {
+      id = Math.floor(Math.random() * 1025) + 1
+      if (mode !== 'stats') break
+      const candidateResponse = await fetch(`https://pokeapi.co/api/v2/pokemon-species/${id}`, { signal })
+      if (!candidateResponse.ok) throw new Error('species')
+      const candidate = await candidateResponse.json()
+      const chainResponse = await fetch(candidate.evolution_chain.url, { signal })
+      if (!chainResponse.ok) throw new Error('evolution')
+      const chain = await chainResponse.json()
+      const stage = findEvolution(chain.chain, candidate.name)
+      if (stage && stage.evolves_to.length === 0) break
+    }
   }
+  const pokemonResponse = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`, { signal })
+  if (!pokemonResponse.ok) throw new Error('pokemon')
+  const pokemon = await pokemonResponse.json()
+  const [speciesResponse, ...detailResponses] = await Promise.all([
+    fetch(pokemon.species.url, { signal }),
+    ...pokemon.abilities.map((ability) => fetch(ability.ability.url, { signal })),
+    ...pokemon.types.map((type) => fetch(type.type.url, { signal })),
+  ])
+  if (!speciesResponse.ok || detailResponses.some((response) => !response.ok)) throw new Error('details')
+  const [species, ...details] = await Promise.all([speciesResponse.json(), ...detailResponses.map((response) => response.json())])
+  const evolution = mode === 'pokedle' ? await getEvolutionInfo(species, signal) : null
   return { pokemon, species, evolution, solutions, abilities: details.slice(0, pokemon.abilities.length), types: details.slice(pokemon.abilities.length) }
 }
 
