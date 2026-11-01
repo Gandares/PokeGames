@@ -192,7 +192,14 @@ function App() {
     if (accepted.some((name) => normalize(name) === normalize(value))) { setStatus('won'); setFeedback(''); setExtraClues([true, true]) }
     else { setFailedGuesses((current) => [...current, species.find((entry) => normalize(entry.name) === normalize(value)) || { name: value.trim() }]); setAttempts((current) => current + 1); setFeedback('wrong'); setGuess('') }
   }
-  const submit = (event) => { event.preventDefault(); checkGuess(guess) }
+  const submit = (event) => {
+    event.preventDefault()
+    if (!guess.trim()) return
+    const exact = species.find((entry) => normalize(entry.name) === normalize(guess))
+    if (exact) checkGuess(exact.name)
+    else if (suggestions.length) checkGuess(suggestions[0].name)
+    else setFeedback('invalid')
+  }
   const revealed = status === 'won' || status === 'revealed'
   const displayName = game && localizedName(game.species.names, language, game.pokemon.name)
   const slots = game ? [game.pokemon.abilities.findIndex((ability) => ability.slot === 1), game.pokemon.abilities.findIndex((ability) => ability.slot === 2 && !ability.is_hidden), game.pokemon.abilities.findIndex((ability) => ability.is_hidden)] : [-1, -1, -1]
