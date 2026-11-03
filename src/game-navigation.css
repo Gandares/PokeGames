@@ -1,6 +1,7 @@
 .game-nav { display: flex; align-items: center; gap: 6px; margin-left: 32px; margin-right: auto; }
 .game-nav a { padding: 10px 12px; border-radius: 8px; color: var(--muted); text-decoration: none; font-size: 12px; font-weight: 700; }
 .game-nav a:hover, .game-nav a[aria-current="page"] { background: var(--soft); color: var(--accent); }
+.final-stage-notice { margin: -10px 0 20px; color: var(--muted); font-size: 12px; line-height: 1.5; }
 .stat-content { width: 100%; min-width: 0; }
 .stat-row { display: flex; align-items: center; gap: 12px; }
 .stat-track { flex: 1; min-width: 0; height: 10px; overflow: hidden; border-radius: 999px; background: var(--line); }
