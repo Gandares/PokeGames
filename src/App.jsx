@@ -237,7 +237,7 @@ function flag(country) {
 function App() {
   const [language, setLanguage] = useState(() => localStorage.getItem('pokegames-language') || 'es')
   const [theme, setTheme] = useState(() => localStorage.getItem('pokegames-theme') || 'light')
-  const [kind, setKind] = useState('infinite')
+  const [kind, setKind] = useState('daily')
   const [day, setDay] = useState(utcDay)
   const [game, setGame] = useState(null)
   const [status, setStatus] = useState('loading')
