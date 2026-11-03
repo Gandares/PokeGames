@@ -9,3 +9,7 @@
 .pokedle-results .match { background: #397f4a; color: white; }
 .pokedle-results .partial { background: #8a6d17; color: white; }
 .pokedle-results .miss { background: #a9443e; color: white; }
+.pokedle-results .pokedle-pending { background: var(--soft); color: var(--muted); }
+.pokedle-cell-reveal { display: block; animation: pokedle-reveal .25s ease-out; }
+@keyframes pokedle-reveal { from { opacity: 0; transform: scale(.85); } to { opacity: 1; transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) { .pokedle-cell-reveal { animation: none; } }
