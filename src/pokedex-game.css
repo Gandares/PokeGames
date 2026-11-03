@@ -3,7 +3,11 @@
 .dex-setup { display: grid; gap: 12px; max-width: 610px; margin: auto; }
 .dex-setup label, .dex-guess label, .dex-answers-title { display: block; color: var(--muted); font: 700 10px 'Space Grotesk', sans-serif; letter-spacing: 1px; text-transform: uppercase; }
 .dex-setup input, .dex-setup select, .dex-guess input { width: 100%; min-width: 0; height: 45px; padding: 0 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--soft); color: var(--ink); font: inherit; }
-.dex-setup select { max-width: 160px; }
+.dex-select { position: relative; width: 100%; max-width: 160px; }
+.dex-setup select { appearance: none; -webkit-appearance: none; padding-right: 40px; cursor: pointer; }
+.dex-select-arrow { position: absolute; top: 50%; right: 12px; width: 18px; height: 18px; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
+.dex-guess input[type='number'] { appearance: textfield; -moz-appearance: textfield; }
+.dex-guess input[type='number']::-webkit-inner-spin-button, .dex-guess input[type='number']::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 .dex-name-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .dex-name-grid label { margin-bottom: 8px; }
 .dex-setup .primary-button, .dex-answers .primary-button { justify-self: start; margin-top: 8px; }
