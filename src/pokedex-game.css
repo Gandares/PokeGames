@@ -35,4 +35,9 @@
 .dex-result li { display: flex; justify-content: space-between; gap: 10px; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--soft); font-size: 12px; }
 .dex-result li span:first-child { overflow-wrap: anywhere; }
 .dex-result .dex-winning-answer { border-color: #72ad7f; }
+.dex-solo { display: grid; gap: 14px; }
+.dex-solo-attempts { display: grid; gap: 7px; margin: 0; padding: 0; list-style: none; }
+.dex-solo-attempts li { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--soft); font-size: 12px; }
+.dex-solo-direction { color: var(--accent); font-weight: 700; }
+.dex-solo-correct { color: #438352; font-weight: 700; }
 @media (max-width: 650px) { .dex-name-grid, .dex-round-content { grid-template-columns: 1fr; } .dex-pokemon { min-height: 220px; } .dex-pokemon img { height: 180px; } }
