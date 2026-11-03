@@ -2,4 +2,7 @@
 .game-mode-selector{display:inline-flex;gap:4px;padding:4px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
 .game-mode-selector button{border:0;border-radius:7px;padding:9px 16px;background:transparent;color:var(--muted);font-weight:700;font-size:12px}
 .game-mode-selector button[aria-pressed=true]{background:var(--accent);color:#fff}
+.daily-countdown{display:flex;justify-content:center;align-items:center;gap:8px;padding-top:38px;color:var(--muted);font-size:12px}
+.daily-countdown time{color:var(--accent);font-weight:700;font-variant-numeric:tabular-nums}
+.daily-countdown + .hero{padding-top:16px}
 @media(max-width:650px){.game-progress{order:4;margin:0 0 10px auto}}
