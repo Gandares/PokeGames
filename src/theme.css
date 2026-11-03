@@ -1,4 +1,4 @@
-.theme-button{position:relative;overflow:hidden;isolation:isolate}
-.theme-button::before{content:'';position:absolute;inset:0;background:url('https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/338.png') center/contain no-repeat;opacity:.4;z-index:-1}
-:root[data-theme=dark] .theme-button::before{background-image:url('https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/337.png')}
-.theme-button span{text-shadow:0 0 4px var(--surface),0 0 4px var(--surface)}
+.app-shell{position:relative;isolation:isolate}
+.app-shell::before{content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;background:url('https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/338.png') right 4vw top 100px / min(40vw, 420px) no-repeat;opacity:.09}
+:root[data-theme=dark] .app-shell::before{background-image:url('https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/337.png');opacity:.12}
+@media(max-width:650px){.app-shell::before{background-size:min(65vw, 300px);background-position:right -30px top 90px}}
