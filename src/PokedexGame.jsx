@@ -1,11 +1,11 @@
-import { useContext, useEffect, useRef, useState } from 'react'
+import { useContext, useEffect, useState } from 'react'
 import { PokedexGameContext } from './pokedex-context'
 import { scorePokedexRound } from './pokedex-scoring'
-import { dailyIndex, loadDaily, newRoundId, recordResult, saveDaily } from './game-progress'
+import { dailyIndex, loadDaily, saveDaily } from './game-progress'
 import './pokedex-game.css'
 
 export default function PokedexGame() {
-  const { catalog, language, kind, day, onResult, catalogError, retryCatalog, onRoundStart, onExact } = useContext(PokedexGameContext)
+  const { catalog, language, kind, day, catalogError, retryCatalog, onRoundStart, onExact } = useContext(PokedexGameContext)
   const spanish = language === 'es'
   const [saved] = useState(() => kind === 'daily' ? loadDaily('dex', day) : null)
   const [playerCount, setPlayerCount] = useState(saved?.playerCount ?? 2)
@@ -21,7 +21,6 @@ export default function PokedexGame() {
   const [guesses, setGuesses] = useState(saved?.guesses ?? [])
   const [result, setResult] = useState(saved?.result ?? null)
   const [error, setError] = useState('')
-  const roundId = useRef(newRoundId())
 
   useEffect(() => {
     if (!started || !catalog.length || (saved?.pokemon && round === 1 && requestNumber === 0)) return
@@ -59,13 +58,10 @@ export default function PokedexGame() {
     const outcome = scorePokedexRound(numbers, target.dexNumber)
     setPlayers((current) => current.map((player, index) => ({ ...player, score: player.score + (outcome.winners[index] ? 1 : 0) })))
     setResult({ ...outcome, guesses: numbers })
-    recordResult('dex', kind, day, outcome.exact, 1, roundId.current)
-    onResult()
     setError('')
     if (outcome.exact) onExact()
   }
   const nextRound = () => {
-    roundId.current = newRoundId()
     setPokemon(null)
     setTarget(null)
     setResult(null)
