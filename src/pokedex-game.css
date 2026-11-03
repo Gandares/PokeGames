@@ -1,0 +1,34 @@
+.dex-hero { padding-bottom: 38px; }
+.dex-game h2 { margin-top: 8px; font: 700 23px 'Space Grotesk', sans-serif; letter-spacing: -.7px; }
+.dex-setup { display: grid; gap: 12px; max-width: 610px; margin: auto; }
+.dex-setup label, .dex-guess label, .dex-answers-title { display: block; color: var(--muted); font: 700 10px 'Space Grotesk', sans-serif; letter-spacing: 1px; text-transform: uppercase; }
+.dex-setup input, .dex-setup select, .dex-guess input { width: 100%; min-width: 0; height: 45px; padding: 0 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--soft); color: var(--ink); font: inherit; }
+.dex-setup select { max-width: 160px; }
+.dex-name-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.dex-name-grid label { margin-bottom: 8px; }
+.dex-setup .primary-button, .dex-answers .primary-button { justify-self: start; margin-top: 8px; }
+.dex-setup .primary-button:disabled { opacity: .55; cursor: not-allowed; }
+.dex-hint, .dex-error { font-size: 12px; line-height: 1.5; }
+.dex-hint { color: var(--muted); }
+.dex-error { color: var(--accent); }
+.dex-round-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+.dex-link { padding: 0; border: 0; background: none; color: var(--accent); font-size: 11px; font-weight: 700; text-decoration: underline; }
+.dex-scoreboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin: 22px 0; }
+.dex-score { display: flex; flex-direction: column; gap: 5px; min-width: 0; padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--soft); }
+.dex-score > span { overflow-wrap: anywhere; color: var(--muted); font-size: 11px; }
+.dex-score strong { font: 700 18px 'Space Grotesk', sans-serif; }
+.dex-score small { color: var(--muted); font: 500 10px 'DM Sans', sans-serif; }
+.dex-round-content { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); gap: 24px; }
+.dex-pokemon { display: flex; min-height: 280px; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 18px; border-radius: 10px; background: #e9eee5; color: #536e57; text-align: center; }
+.dex-pokemon img { width: 100%; max-width: 230px; height: 220px; object-fit: contain; filter: drop-shadow(0 10px 10px #80938055); }
+.dex-pokemon strong { font: 700 16px 'Space Grotesk', sans-serif; }
+.dex-answers form { display: grid; gap: 12px; }
+.dex-guess { display: grid; grid-template-columns: minmax(80px, 1fr) minmax(90px, 140px); align-items: center; gap: 12px; }
+.dex-guess label { overflow-wrap: anywhere; }
+.dex-answers-title { margin: 3px 0 6px; }
+.dex-result h3 { margin: 10px 0 16px; font: 700 20px 'Space Grotesk', sans-serif; }
+.dex-result ul { display: grid; gap: 7px; margin: 0 0 12px; padding: 0; list-style: none; }
+.dex-result li { display: flex; justify-content: space-between; gap: 10px; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--soft); font-size: 12px; }
+.dex-result li span:first-child { overflow-wrap: anywhere; }
+.dex-result .dex-winning-answer { border-color: #72ad7f; }
+@media (max-width: 650px) { .dex-name-grid, .dex-round-content { grid-template-columns: 1fr; } .dex-pokemon { min-height: 220px; } .dex-pokemon img { height: 180px; } }
