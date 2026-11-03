@@ -396,7 +396,7 @@ function App() {
   const displayName = game && (variantSuffix.test(game.pokemon.name) ? displayVariant(variantName(game.pokemon.name), language) : localizedName(game.species.names, language, game.pokemon.name))
   const slots = game ? [game.pokemon.abilities.findIndex((ability) => ability.slot === 1), game.pokemon.abilities.findIndex((ability) => ability.slot === 2 && !ability.is_hidden), game.pokemon.abilities.findIndex((ability) => ability.is_hidden)] : [-1, -1, -1]
   const labels = [copy.primary, copy.secondary, copy.hidden, language === 'es' ? 'GENERACIÓN' : 'GENERATION', language === 'es' ? 'TIPOS' : 'TYPES']
-  const clueThresholds = [0, 2, 4, mode === 'moves' || mode === 'colors' ? 2 : 6, mode === 'moves' || mode === 'colors' ? 4 : 8]
+  const clueThresholds = [0, 2, 4, mode === 'moves' || mode === 'colors' || mode === 'description' ? 2 : 6, mode === 'moves' || mode === 'colors' || mode === 'description' ? 4 : 8]
   const unlocked = [true, attempts >= 2 || revealed, attempts >= 4 || revealed, attempts >= clueThresholds[3] || status === 'won', attempts >= clueThresholds[4] || status === 'won']
   const statLabels = language === 'es' ? ['VIDA', 'ATAQUE', 'DEFENSA', 'ATAQUE ESPECIAL', 'DEFENSA ESPECIAL', 'VELOCIDAD'] : ['HP', 'ATTACK', 'DEFENSE', 'SPECIAL ATTACK', 'SPECIAL DEFENSE', 'SPEED']
   const unlockedStats = statLabels.map((_, index) => attempts >= index || revealed)
