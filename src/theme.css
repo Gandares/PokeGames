@@ -1,0 +1,4 @@
+.theme-button{position:relative;overflow:hidden;isolation:isolate}
+.theme-button::before{content:'';position:absolute;inset:0;background:url('https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/338.png') center/contain no-repeat;opacity:.4;z-index:-1}
+:root[data-theme=dark] .theme-button::before{background-image:url('https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/337.png')}
+.theme-button span{text-shadow:0 0 4px var(--surface),0 0 4px var(--surface)}
