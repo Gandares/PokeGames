@@ -18,4 +18,3 @@
 .check-types:disabled { opacity: .55; cursor: not-allowed; }
 .type-challenge .types-complete { color: #39834c; font-weight: 700; }
 @media (max-width: 420px) { .type-zones { grid-template-columns: 1fr; } }
-@media (max-width: 650px) { .game-nav { overflow-x: auto; } .game-nav a { flex: 0 0 auto; white-space: nowrap; } }
